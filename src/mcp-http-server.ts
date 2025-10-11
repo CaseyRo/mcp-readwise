@@ -500,12 +500,19 @@ class ReadwiseMcpHttpServer {
             errors: validationResult.error.errors,
             received: args
           });
+          const errorMessage = `Invalid arguments: ${validationResult.error.errors.map(e => e.message).join(', ')}`;
           return {
             jsonrpc: "2.0",
             id: request.id,
-            error: {
-              code: -32602,
-              message: `Invalid arguments: ${validationResult.error.errors.map(e => e.message).join(', ')}`
+            result: {
+              isError: true,
+              content: [
+                {
+                  type: "text",
+                  text: errorMessage
+                }
+              ],
+              diagnostics: validationResult.error.errors
             }
           };
         }
@@ -535,19 +542,33 @@ class ReadwiseMcpHttpServer {
       return {
         jsonrpc: "2.0",
         id: request.id,
-        error: {
-          code: -32601,
-          message: "Tool not found"
+        result: {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `Tool "${name}" not found. Available tools: search_readwise_highlights`
+            }
+          ]
         }
       };
     } catch (error) {
       this.logger.error('Tool execution failed', error);
+      const message = error instanceof Error ? error.message : 'Tool execution failed';
+      const stack = error instanceof Error ? error.stack : undefined;
       return {
         jsonrpc: "2.0",
         id: request.id,
-        error: {
-          code: -32603,
-          message: "Tool execution failed"
+        result: {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `Tool execution failed: ${message}`
+            },
+            ...(stack ? [{ type: "text", text: stack }] : [])
+          ],
+          ...(stack ? { diagnostics: stack } : {})
         }
       };
     }
@@ -585,9 +606,14 @@ class ReadwiseMcpHttpServer {
           const errorResponse: McpResponse = {
             jsonrpc: "2.0",
             id: request.id,
-            error: {
-              code: -32602,
-              message: "Either vector_search_term or full_text_queries must be provided"
+            result: {
+              isError: true,
+              content: [
+                {
+                  type: "text",
+                  text: "Either vector_search_term or full_text_queries must be provided"
+                }
+              ]
             }
           };
           res.write(JSON.stringify(errorResponse) + '\n');
@@ -662,9 +688,14 @@ class ReadwiseMcpHttpServer {
         const errorResponse: McpResponse = {
           jsonrpc: "2.0",
           id: request.id,
-          error: {
-            code: -32601,
-            message: "Tool not found"
+          result: {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: `Tool "${name}" not found. Available tools: search_readwise_highlights`
+              }
+            ]
           }
         };
         res.write(JSON.stringify(errorResponse) + '\n');
@@ -672,12 +703,21 @@ class ReadwiseMcpHttpServer {
       }
     } catch (error) {
       this.logger.error('Streaming tool execution failed', error);
+      const message = error instanceof Error ? error.message : 'Tool execution failed';
+      const stack = error instanceof Error ? error.stack : undefined;
       const errorResponse: McpResponse = {
         jsonrpc: "2.0",
         id: request.id,
-        error: {
-          code: -32603,
-          message: "Tool execution failed"
+        result: {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `Tool execution failed: ${message}`
+            },
+            ...(stack ? [{ type: "text", text: stack }] : [])
+          ],
+          ...(stack ? { diagnostics: stack } : {})
         }
       };
       res.write(JSON.stringify(errorResponse) + '\n');
