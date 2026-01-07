@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@readwise/readwise-mcp": "^0.0.6",
-    "@modelcontextprotocol/sdk": "^1.9.0",
+    "@modelcontextprotocol/sdk": "^1.25.2",
     "axios": "^1.8.4",
     "axios-retry": "^4.5.0",
     "zod": "^3.25.75",
