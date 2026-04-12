@@ -20,34 +20,42 @@ from tests.conftest import (
 class TestSearchHighlights:
     @pytest.mark.asyncio
     async def test_hybrid_search(self):
-        mock_response = {"results": [SAMPLE_HIGHLIGHT]}
+        # MCP search endpoint returns {id, score, attributes: {...}}
+        mcp_result = {
+            "id": 1001,
+            "score": 0.95,
+            "attributes": {
+                "highlight_plaintext": "Every action you take is a vote for the type of person you wish to become.",
+                "highlight_note": "Key identity concept",
+                "document_title": "Atomic Habits",
+                "document_author": "James Clear",
+                "document_tags": ["identity", "habits"],
+                "book_id": 100,
+            },
+        }
+        mock_response = {"results": [mcp_result]}
 
         with patch("mcp_readwise.tools.highlights.client") as mock_client:
             mock_client.post = AsyncMock(return_value=mock_response)
-            mock_client.get_book_metadata = AsyncMock(
-                return_value={"book_title": "Atomic Habits", "book_author": "James Clear", "source_url": ""}
-            )
 
             from mcp_readwise.tools.highlights import search_highlights
 
             result = await search_highlights(query="habit formation")
 
         assert len(result.results) == 1
-        assert result.results[0].text == SAMPLE_HIGHLIGHT["text"]
+        assert "Every action" in result.results[0].text
         assert result.results[0].book_title == "Atomic Habits"
+        assert result.results[0].book_author == "James Clear"
         assert result.results[0].tags == ["identity", "habits"]
 
     @pytest.mark.asyncio
     async def test_search_with_book_filter(self):
-        h1 = {**SAMPLE_HIGHLIGHT, "book_id": 100}
-        h2 = {**SAMPLE_HIGHLIGHT, "id": 1002, "book_id": 200}
+        h1 = {"id": 1001, "score": 0.9, "attributes": {"highlight_plaintext": "text1", "book_id": 100, "document_title": "Book A", "document_author": ""}}
+        h2 = {"id": 1002, "score": 0.8, "attributes": {"highlight_plaintext": "text2", "book_id": 200, "document_title": "Book B", "document_author": ""}}
         mock_response = {"results": [h1, h2]}
 
         with patch("mcp_readwise.tools.highlights.client") as mock_client:
             mock_client.post = AsyncMock(return_value=mock_response)
-            mock_client.get_book_metadata = AsyncMock(
-                return_value={"book_title": "", "book_author": "", "source_url": ""}
-            )
 
             from mcp_readwise.tools.highlights import search_highlights
 
