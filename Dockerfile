@@ -7,6 +7,10 @@ ENV PYTHONUNBUFFERED=1
 COPY pyproject.toml README.md ./
 COPY mcp_readwise/ ./mcp_readwise/
 
+# Inject git commit hash at build time
+ARG GIT_COMMIT=unknown
+ENV GIT_COMMIT=${GIT_COMMIT}
+
 RUN pip install --no-cache-dir . \
     && addgroup --system mcp && adduser --system --ingroup mcp mcp
 
@@ -18,6 +22,6 @@ ENV HOST=0.0.0.0
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD python3 -c "from urllib.request import urlopen;from urllib.error import HTTPError,URLError;exec('try:\n urlopen(\"http://localhost:8000/mcp\")\nexcept HTTPError:\n pass\nexcept URLError:\n raise')"
+  CMD python3 -c "from urllib.request import urlopen;import json;r=urlopen('http://localhost:8000/health');d=json.loads(r.read());exit(0 if d.get('status')=='healthy' else 1)"
 
 CMD ["mcp-readwise"]
