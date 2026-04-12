@@ -24,8 +24,8 @@ class TestSearchHighlights:
 
         with patch("mcp_readwise.tools.highlights.client") as mock_client:
             mock_client.post = AsyncMock(return_value=mock_response)
-            mock_client.enrich_highlight = AsyncMock(
-                return_value={**SAMPLE_HIGHLIGHT, "book_title": "Atomic Habits", "book_author": "James Clear", "source_url": ""}
+            mock_client.get_book_metadata = AsyncMock(
+                return_value={"book_title": "Atomic Habits", "book_author": "James Clear", "source_url": ""}
             )
 
             from mcp_readwise.tools.highlights import search_highlights
@@ -45,7 +45,9 @@ class TestSearchHighlights:
 
         with patch("mcp_readwise.tools.highlights.client") as mock_client:
             mock_client.post = AsyncMock(return_value=mock_response)
-            mock_client.enrich_highlight = AsyncMock(side_effect=lambda h: {**h, "book_title": "", "book_author": "", "source_url": ""})
+            mock_client.get_book_metadata = AsyncMock(
+                return_value={"book_title": "", "book_author": "", "source_url": ""}
+            )
 
             from mcp_readwise.tools.highlights import search_highlights
 

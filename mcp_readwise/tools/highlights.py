@@ -51,18 +51,49 @@ async def search_highlights(
     for item in raw_results[:limit]:
         if book_id and item.get("book_id") != book_id:
             continue
-        enriched = await client.enrich_highlight(item)
-        tag_list = [t.get("name", "") for t in item.get("tags", [])] if isinstance(item.get("tags"), list) else []
+
+        # MCP search endpoint uses different field names than v2 API:
+        #   highlight_plaintext -> text, document_title -> book_title, etc.
+        text = (
+            item.get("text")
+            or item.get("highlight_plaintext")
+            or item.get("content", "")
+        )
+        note = item.get("note") or item.get("highlight_note", "")
+        h_book_id = item.get("book_id", 0)
+        h_book_title = item.get("document_title", "")
+        h_book_author = item.get("document_author", "")
+        h_source_url = item.get("source_url", "")
+
+        # Enrich with book metadata if we have a book_id but no title
+        if h_book_id and not h_book_title:
+            meta = await client.get_book_metadata(h_book_id)
+            h_book_title = meta.get("book_title", "")
+            h_book_author = meta.get("book_author", "")
+            h_source_url = meta.get("source_url", h_source_url)
+
+        # Tags can be list of dicts, list of strings, or comma-separated string
+        raw_tags = item.get("tags") or item.get("highlight_tags") or []
+        if isinstance(raw_tags, str):
+            tag_list = [t.strip() for t in raw_tags.split(",") if t.strip()]
+        elif isinstance(raw_tags, list):
+            tag_list = [
+                t.get("name", "") if isinstance(t, dict) else str(t)
+                for t in raw_tags
+            ]
+        else:
+            tag_list = []
+
         results.append(
             HighlightResult(
                 id=item.get("id", 0),
-                text=item.get("text", ""),
-                note=item.get("note", ""),
+                text=text,
+                note=note,
                 tags=tag_list,
-                book_id=item.get("book_id", 0),
-                book_title=enriched.get("book_title", ""),
-                book_author=enriched.get("book_author", ""),
-                source_url=enriched.get("source_url", ""),
+                book_id=h_book_id,
+                book_title=h_book_title,
+                book_author=h_book_author,
+                source_url=h_source_url,
                 highlighted_at=item.get("highlighted_at", ""),
                 created_at=item.get("created_at", ""),
                 updated_at=item.get("updated_at", ""),
