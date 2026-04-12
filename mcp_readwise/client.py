@@ -55,6 +55,11 @@ class ReadwiseClient:
                 if resp.status_code == 429:
                     wait = _BACKOFF_BASE ** (attempt + 1)
                     logger.warning("Rate limited (429), backing off %.1fs", wait)
+                    last_exc = httpx.HTTPStatusError(
+                        "429 Too Many Requests",
+                        request=resp.request,
+                        response=resp,
+                    )
                     await asyncio.sleep(wait)
                     continue
                 resp.raise_for_status()

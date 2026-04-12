@@ -67,7 +67,7 @@ from mcp_readwise.tools.reader import (
 )
 from mcp_readwise.tools.export import export_highlights
 
-_api_key = os.getenv("MCP_API_KEY", "")
+_api_key = settings.mcp_api_key.get_secret_value()
 _auth = BearerTokenVerifier(api_key=_api_key) if _api_key else None
 
 mcp = FastMCP("mcp-readwise", auth=_auth)

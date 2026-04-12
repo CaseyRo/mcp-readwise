@@ -2,12 +2,24 @@
 
 from __future__ import annotations
 
+import re
 from typing import Annotated, Literal, Optional
 
-from pydantic import Field
+from pydantic import AnyHttpUrl, Field
 
 from mcp_readwise.client import client
 from mcp_readwise.models.reader import ReaderDocument, ReaderListResult
+
+_DOC_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_\-]{1,64}$")
+
+
+def _validate_doc_id(document_id: str) -> str:
+    """Validate document ID to prevent path manipulation."""
+    if not _DOC_ID_PATTERN.match(document_id):
+        raise ValueError(
+            f"Invalid document_id: must be 1-64 alphanumeric/dash/underscore characters"
+        )
+    return document_id
 
 
 async def list_documents(
@@ -79,6 +91,7 @@ async def get_document(document_id: str) -> ReaderDocument:
     Returns the complete document including title, author, content,
     summary, reading progress, tags, and source URL.
     """
+    _validate_doc_id(document_id)
     data = await client.get(f"/api/v3/get/{document_id}/")
     tags = []
     if isinstance(data.get("tags"), dict):
@@ -108,7 +121,7 @@ async def get_document(document_id: str) -> ReaderDocument:
 
 
 async def save_url(
-    url: str,
+    url: AnyHttpUrl,
     title: Optional[str] = None,
     tags: Optional[list[str]] = None,
     location: Literal["new", "later", "shortlist", "archive"] = "new",
@@ -117,12 +130,13 @@ async def save_url(
     """Save a URL to Readwise Reader.
 
     This is the primary way to add content to Reader. The service fetches
-    and parses the article automatically.
+    and parses the article automatically. Only http:// and https:// URLs
+    are accepted.
 
     location controls where it appears: 'new' (inbox), 'later', 'shortlist',
     or 'archive'. Default is 'new'.
     """
-    payload: dict = {"url": url, "location": location}
+    payload: dict = {"url": str(url), "location": location}
     if title:
         payload["title"] = title
     if tags:
@@ -161,6 +175,7 @@ async def update_progress(
     reading_progress is a float from 0.0 (unread) to 1.0 (finished).
     Returns the updated document.
     """
+    _validate_doc_id(document_id)
     await client.patch(
         f"/api/v3/update/{document_id}/",
         reading_progress=reading_progress,
