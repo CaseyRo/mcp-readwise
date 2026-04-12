@@ -38,3 +38,10 @@ class HighlightListResult(BaseModel):
 class ExportResult(BaseModel):
     results: list[dict]
     next_cursor: Optional[str] = None
+
+    @field_validator("next_cursor", mode="before")
+    @classmethod
+    def coerce_cursor_to_str(cls, v):
+        if v is not None:
+            return str(v)
+        return v
