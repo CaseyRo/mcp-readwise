@@ -17,10 +17,19 @@ _start_time = datetime.now(timezone.utc)
 
 
 def _resolve_git_commit() -> str:
-    """Get git commit from env var, or read from .git if available."""
+    """Get git commit from env var, baked file, or git command."""
     from_env = os.getenv("GIT_COMMIT", "")
     if from_env and from_env != "unknown":
         return from_env
+    # Check for baked-in file (Docker image)
+    try:
+        with open("/app/.git_commit") as f:
+            val = f.read().strip()
+            if val and val != "unknown":
+                return val
+    except FileNotFoundError:
+        pass
+    # Fallback: git command (local dev)
     try:
         import subprocess
         result = subprocess.run(
@@ -93,12 +102,23 @@ mcp.tool(update_progress)
 mcp.tool(export_highlights)
 
 
+def _build_version() -> str:
+    """Combine semver with git commit for a unique build identifier."""
+    if _git_commit and _git_commit != "unknown":
+        return f"{__version__}+{_git_commit}"
+    return __version__
+
+
+_build = _build_version()
+
+
 @mcp.custom_route("/health", methods=["GET"])
 async def health_check(request: Request) -> JSONResponse:
     return JSONResponse({
         "status": "healthy",
         "service": "mcp-readwise",
         "version": __version__,
+        "build": _build,
         "git_commit": _git_commit,
         "uptime_seconds": int((datetime.now(timezone.utc) - _start_time).total_seconds()),
         "tools": 17,
