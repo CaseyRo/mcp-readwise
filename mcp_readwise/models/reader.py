@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class ReaderDocument(BaseModel):
@@ -21,6 +21,14 @@ class ReaderDocument(BaseModel):
     tags: list[str] = []
     created_at: str = ""
     updated_at: str = ""
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def none_to_default(cls, v, info):
+        if v is None:
+            field = cls.model_fields.get(info.field_name)
+            return field.default if field and field.default is not None else v
+        return v
 
 
 class ReaderListResult(BaseModel):
