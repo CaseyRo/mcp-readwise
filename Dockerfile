@@ -1,38 +1,23 @@
-# Use Node.js 22 (stable) as base image
-FROM node:22-alpine
+FROM python:3.12-slim
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+ENV PYTHONUNBUFFERED=1
 
-# Install all dependencies (including dev dependencies for build)
-RUN npm ci
+COPY pyproject.toml README.md ./
+COPY mcp_readwise/ ./mcp_readwise/
 
-# Copy source code
-COPY . .
+RUN pip install --no-cache-dir . \
+    && addgroup --system mcp && adduser --system --ingroup mcp mcp
 
-# Build the TypeScript project
-RUN npm run build
+USER mcp
 
-# Remove dev dependencies to reduce image size
-RUN npm prune --production
+ENV TRANSPORT=http
+ENV HOST=0.0.0.0
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+EXPOSE 8000
 
-# Change ownership of the app directory
-RUN chown -R nodejs:nodejs /app
-USER nodejs
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD python3 -c "from urllib.request import urlopen;from urllib.error import HTTPError,URLError;exec('try:\n urlopen(\"http://localhost:8000/mcp\")\nexcept HTTPError:\n pass\nexcept URLError:\n raise')"
 
-# Expose port
-EXPOSE 3000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
-
-# Start the application
-CMD ["npm", "start"]
+CMD ["mcp-readwise"]

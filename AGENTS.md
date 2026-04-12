@@ -1,74 +1,46 @@
-# AGENTS.md - Development Notes & Ideas
+# AGENTS.md
 
 ## Project Overview
-- **Readwise MCP HTTP Server**: Node.js server providing MCP (Model Context Protocol) over HTTP access to Readwise highlights
-- **Tech Stack**: TypeScript, Express, MCP SDK, Readwise API
-- **Containerization**: Docker with Node.js 22 (stable) Alpine base
+- **mcp-readwise**: Python FastMCP server providing MCP access to Readwise highlights, books, tags, and Reader documents
+- **Tech Stack**: Python 3.12, FastMCP 3.x, httpx, Pydantic, pydantic-settings
+- **Deployment**: Docker (python:3.12-slim) -> Komodo -> Cloudflare MCP Portal
 
-## Development Environment Tips
-- Use `docker-compose -f docker-compose.dev.yml up -d` for development with hot reloading
-- Development server runs on port 3456 (mapped from container port 3000)
-- Production server runs on port 3000
-- Source code is mounted as volumes in dev mode for instant reloading
-- Use `docker-compose logs -f` to tail logs in real-time
+## Project Structure
+```
+mcp_readwise/
+  server.py      # FastMCP app, tool registration, main()
+  config.py      # Settings via pydantic-settings
+  client.py      # Centralized httpx client (auth, retries, rate limits)
+  auth.py        # BearerTokenVerifier for MCP Portal
+  models/        # Pydantic response models (highlights, books, tags, reader)
+  tools/         # Tool functions by domain (highlights, books, tags, reader, export)
+```
 
-## Docker Workflow
-- **Development**: `docker-compose -f docker-compose.dev.yml up -d` (hot reloading)
-- **Production**: `docker-compose up -d` (optimized build)
-- **Build test**: `docker build -t test-image .` to verify builds work
-- **Cleanup**: `docker-compose down` or `docker-compose -f docker-compose.dev.yml down`
+## Conventions
+- Tool names: snake_case, no server prefix (Cloudflare Portal namespaces automatically)
+- All tools are async functions
+- Response models join book metadata into highlight responses
+- List tools return pagination envelopes with `total` and `next_page`/`next_cursor`
+- Literal types for all categorical parameters
+- Upper-bounded limits on all paginated queries (max 100)
 
-## Environment Configuration
-- All environment variables are now centralized in `.env` file
-- No duplicate environment variables in docker-compose files
-- Required: `ACCESS_TOKEN` (Readwise API token)
-- Optional: `PORT`, `NODE_ENV`, `DEBUG`, `BASE_URL`
-- Copy `.env.example` to `.env` and configure
+## Development
+```bash
+READWISE_TOKEN=your_token uv run mcp-readwise          # stdio mode
+READWISE_TOKEN=your_token TRANSPORT=http uv run mcp-readwise  # HTTP mode
+```
 
-## Code Structure Notes
-- Main server: `src/mcp-http-server.ts`
-- TypeScript config: `tsconfig.json`
-- Package scripts: `build`, `start`, `dev`, `watch`
-- Health check endpoint: `/health`
-- MCP endpoints: `/mcp`, `/mcp/stream`, `/mcp/info`
+## Testing
+```bash
+uv run pytest
+```
 
-## Testing & Validation
-- Health checks built into Docker containers
-- MCP protocol validation via official SDK
-- Error handling with retry logic for API failures
-- Debug logging when `DEBUG=true`
+## Docker
+```bash
+docker compose up -d    # requires READWISE_TOKEN in .env
+```
 
-## Security Considerations
-- Non-root user (UID 1001) in containers
-- Alpine Linux base for minimal attack surface
-- Environment variable isolation
-- Separate networks for dev/prod
-
-## Performance Optimizations
-- Multi-stage Docker builds (install all deps, build, prune dev deps)
-- Volume mounting for development hot reloading
-- Health check monitoring
-- Automatic container restart policies
-
-## Future Ideas
-- [ ] Add metrics collection (Prometheus/Grafana)
-- [ ] Implement rate limiting
-- [ ] Add authentication middleware
-- [ ] Support for multiple Readwise accounts
-- [ ] Caching layer for API responses
-- [ ] Webhook support for real-time updates
-- [ ] Kubernetes deployment manifests
-- [ ] CI/CD pipeline with automated testing
-
-## Troubleshooting Notes
-- If container won't start: check port availability and .env file
-- Build failures: ensure TypeScript and all dependencies are available
-- Permission issues: containers run as non-root user
-- Health check failures: verify /health endpoint implementation
-
-## API Integration Notes
-- Uses official `@readwise/readwise-mcp` package
-- Vector search and full-text search capabilities
-- Streaming responses for real-time results
-- Automatic retry logic for API failures
-- CORS support for cross-origin requests
+## API Endpoints
+- Readwise v2 API (readwise.io/api/v2/) — highlights, books, tags, export
+- Readwise Reader v3 API (readwise.io/api/v3/) — Reader documents
+- Auth: `Authorization: Token <READWISE_TOKEN>` header on all requests
