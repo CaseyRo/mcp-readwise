@@ -6,7 +6,8 @@ services:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8010:8000"
+      # Not bound to 127.0.0.1 because cloudflared tunnel connects via Tailscale IP
+      - "8010:8000"
     environment:
       - TRANSPORT=http
       - HOST=0.0.0.0
