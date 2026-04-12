@@ -7,9 +7,9 @@ ENV PYTHONUNBUFFERED=1
 COPY pyproject.toml README.md ./
 COPY mcp_readwise/ ./mcp_readwise/
 
-# Inject git commit hash at build time
+# Bake git commit into the image
 ARG GIT_COMMIT=unknown
-ENV GIT_COMMIT=${GIT_COMMIT}
+RUN echo "${GIT_COMMIT}" > /app/.git_commit
 
 RUN pip install --no-cache-dir . \
     && addgroup --system mcp && adduser --system --ingroup mcp mcp

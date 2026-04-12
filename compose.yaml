@@ -13,6 +13,7 @@ services:
       - READWISE_TOKEN=${READWISE_TOKEN:-}
       - MCP_API_KEY=${MCP_API_KEY:-}
       - FASTMCP_HOME=/data/fastmcp
+      - GIT_COMMIT=${GIT_COMMIT:-unknown}
     deploy:
       resources:
         limits:
