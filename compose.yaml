@@ -1,6 +1,9 @@
 services:
   mcp-readwise:
-    build: .
+    build:
+      context: .
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
     restart: unless-stopped
     ports:
       - "8010:8000"
