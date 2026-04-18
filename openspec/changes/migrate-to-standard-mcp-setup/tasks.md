@@ -82,6 +82,6 @@
 ## 13. Deploy & Verify
 
 - [x] 13.1 Build and test Docker image locally
-- [ ] 13.2 Deploy to Komodo via git push
-- [ ] 13.3 Configure Cloudflare MCP Portal for mcp-readwise.cdit-dev.de
-- [ ] 13.4 Verify all tools work through Cloudflare Portal from Claude Desktop
+- [x] 13.2 Deploy to Komodo via git push
+- [x] 13.3 Configure Cloudflare MCP Portal for mcp-readwise.cdit-dev.de
+- [x] 13.4 Verify all tools work through Cloudflare Portal from Claude Desktop
