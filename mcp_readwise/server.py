@@ -68,6 +68,11 @@ from mcp_readwise.tools.reader import (
 from mcp_readwise.tools.export import export_highlights
 
 _api_key = settings.mcp_api_key.get_secret_value()
+if settings.transport == "http" and not _api_key:
+    raise SystemExit(
+        "MCP_API_KEY is required in HTTP mode. Refusing to start "
+        "an unauthenticated server."
+    )
 _auth = BearerTokenVerifier(api_key=_api_key) if _api_key else None
 
 mcp = FastMCP("mcp-readwise", auth=_auth)
@@ -128,7 +133,12 @@ async def health_check(request: Request) -> JSONResponse:
 def main() -> None:
     """Entry point for the mcp-readwise server."""
     if settings.transport == "http":
-        mcp.run(transport="http", host=settings.host, port=settings.port)
+        mcp.run(
+            transport="streamable-http",
+            host=settings.host,
+            port=settings.port,
+            stateless_http=True,
+        )
     else:
         mcp.run()
 
