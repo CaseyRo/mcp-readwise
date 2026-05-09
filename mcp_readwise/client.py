@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from functools import lru_cache
 from typing import Any
 
 import httpx

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 from datetime import datetime, timezone
 
 from fastmcp import FastMCP
@@ -12,6 +13,28 @@ from starlette.responses import JSONResponse
 from mcp_readwise import __version__
 from mcp_readwise.auth import BearerTokenVerifier
 from mcp_readwise.config import settings
+from mcp_readwise.tools.books import get_book, list_books
+from mcp_readwise.tools.export import export_highlights
+from mcp_readwise.tools.highlights import (
+    create_highlight,
+    delete_highlight,
+    get_highlight,
+    list_highlights,
+    search_highlights,
+    update_highlight,
+)
+from mcp_readwise.tools.reader import (
+    get_document,
+    list_documents,
+    save_url,
+    update_progress,
+)
+from mcp_readwise.tools.tags import (
+    create_tag,
+    delete_tag,
+    list_tags,
+    tag_highlight,
+)
 
 _start_time = datetime.now(timezone.utc)
 
@@ -31,7 +54,6 @@ def _resolve_git_commit() -> str:
         pass
     # Fallback: git command (local dev)
     try:
-        import subprocess
         result = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],
             capture_output=True, text=True, timeout=2,
@@ -44,28 +66,6 @@ def _resolve_git_commit() -> str:
 
 
 _git_commit = _resolve_git_commit()
-from mcp_readwise.tools.highlights import (
-    create_highlight,
-    delete_highlight,
-    get_highlight,
-    list_highlights,
-    search_highlights,
-    update_highlight,
-)
-from mcp_readwise.tools.books import get_book, list_books
-from mcp_readwise.tools.tags import (
-    create_tag,
-    delete_tag,
-    list_tags,
-    tag_highlight,
-)
-from mcp_readwise.tools.reader import (
-    get_document,
-    list_documents,
-    save_url,
-    update_progress,
-)
-from mcp_readwise.tools.export import export_highlights
 
 _api_key = settings.mcp_api_key.get_secret_value()
 if settings.transport == "http" and not _api_key:
