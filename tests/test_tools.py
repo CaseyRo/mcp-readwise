@@ -305,7 +305,7 @@ class TestExportTool:
 
             from mcp_readwise.tools.export import export_highlights
 
-            result = await export_highlights(
+            await export_highlights(
                 updated_after="2024-01-01",
                 book_ids=[100, 200],
             )

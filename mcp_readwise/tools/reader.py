@@ -17,7 +17,7 @@ def _validate_doc_id(document_id: str) -> str:
     """Validate document ID to prevent path manipulation."""
     if not _DOC_ID_PATTERN.match(document_id):
         raise ValueError(
-            f"Invalid document_id: must be 1-64 alphanumeric/dash/underscore characters"
+            "Invalid document_id: must be 1-64 alphanumeric/dash/underscore characters"
         )
     return document_id
 
