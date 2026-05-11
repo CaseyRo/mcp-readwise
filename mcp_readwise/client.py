@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 _MAX_RETRIES = 3
 _BACKOFF_BASE = 2.0
-_BOOK_CACHE_SIZE = 256
+_BOOK_CACHE_SIZE = 512
 
 
 class ReadwiseClient:
@@ -114,7 +114,12 @@ class ReadwiseClient:
     # --- Book metadata cache for joining into highlight responses ---
 
     async def get_book_metadata(self, book_id: int) -> dict[str, Any]:
-        """Get book metadata, using cache to avoid repeated API calls."""
+        """Get book metadata, using cache to avoid repeated API calls.
+
+        Returns a dict with `book_title`, `book_author`, `source_url`,
+        `source` (kindle/reader/ibooks/...), `num_highlights`, and `category`.
+        The richer fields are needed by the engagement scoring module.
+        """
         if book_id in self._book_cache:
             return self._book_cache[book_id]
         try:
@@ -123,13 +128,23 @@ class ReadwiseClient:
                 "book_title": data.get("title", ""),
                 "book_author": data.get("author", ""),
                 "source_url": data.get("source_url", ""),
+                "source": data.get("source", ""),
+                "num_highlights": data.get("num_highlights", 0),
+                "category": data.get("category", ""),
             }
             if len(self._book_cache) < _BOOK_CACHE_SIZE:
                 self._book_cache[book_id] = meta
             return meta
         except Exception:
             logger.warning("Failed to fetch book metadata for %d", book_id)
-            return {"book_title": "", "book_author": "", "source_url": ""}
+            return {
+                "book_title": "",
+                "book_author": "",
+                "source_url": "",
+                "source": "",
+                "num_highlights": 0,
+                "category": "",
+            }
 
     async def enrich_highlight(self, highlight: dict[str, Any]) -> dict[str, Any]:
         """Add book metadata to a highlight dict."""

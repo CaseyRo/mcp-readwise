@@ -143,6 +143,8 @@ async def list_highlights(
                 highlighted_at=item.get("highlighted_at", ""),
                 created_at=item.get("created_at", ""),
                 updated_at=item.get("updated_at", ""),
+                is_favorite=bool(item.get("is_favorite", False)),
+                is_discard=bool(item.get("is_discard", False)),
             )
         )
 
@@ -171,6 +173,8 @@ async def get_highlight(highlight_id: int) -> HighlightResult:
         highlighted_at=data.get("highlighted_at", ""),
         created_at=data.get("created_at", ""),
         updated_at=data.get("updated_at", ""),
+        is_favorite=bool(data.get("is_favorite", False)),
+        is_discard=bool(data.get("is_discard", False)),
     )
 
 

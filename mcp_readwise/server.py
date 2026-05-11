@@ -13,28 +13,24 @@ from starlette.responses import JSONResponse
 from mcp_readwise import __version__
 from mcp_readwise.auth import BearerTokenVerifier
 from mcp_readwise.config import settings
-from mcp_readwise.tools.books import get_book, list_books
-from mcp_readwise.tools.export import export_highlights
+from mcp_readwise.engagement import index_status
 from mcp_readwise.tools.highlights import (
     create_highlight,
     delete_highlight,
-    get_highlight,
-    list_highlights,
-    search_highlights,
     update_highlight,
 )
 from mcp_readwise.tools.reader import (
-    get_document,
-    list_documents,
     save_url,
     update_progress,
 )
+from mcp_readwise.tools.status import reading_status
 from mcp_readwise.tools.tags import (
     create_tag,
     delete_tag,
     list_tags,
     tag_highlight,
 )
+from mcp_readwise.tools.writing import writing_material
 
 _start_time = datetime.now(timezone.utc)
 
@@ -77,19 +73,14 @@ _auth = BearerTokenVerifier(api_key=_api_key) if _api_key else None
 
 mcp = FastMCP("mcp-readwise", auth=_auth)
 
-# Highlights — search & read
-mcp.tool(search_highlights)
-mcp.tool(list_highlights)
-mcp.tool(get_highlight)
+# Read tools — engagement-aware (the v0.4.0 surface)
+mcp.tool(reading_status)
+mcp.tool(writing_material)
 
 # Highlights — write
 mcp.tool(create_highlight)
 mcp.tool(update_highlight)
 mcp.tool(delete_highlight)
-
-# Books
-mcp.tool(list_books)
-mcp.tool(get_book)
 
 # Tags
 mcp.tool(list_tags)
@@ -97,14 +88,19 @@ mcp.tool(create_tag)
 mcp.tool(delete_tag)
 mcp.tool(tag_highlight)
 
-# Reader
-mcp.tool(list_documents)
-mcp.tool(get_document)
+# Reader — write/update only (read paths absorbed by reading_status / writing_material)
 mcp.tool(save_url)
 mcp.tool(update_progress)
 
-# Export
-mcp.tool(export_highlights)
+# NOTE: v0.4.0 BREAKING — the following read primitives are no longer
+# registered as MCP tools. Their client functions remain available for
+# internal use by the engagement module:
+#   - search_highlights, list_highlights, get_highlight
+#   - list_books, get_book
+#   - list_documents, get_document
+#   - export_highlights
+# Migrate callers to `reading_status` (orientation, status, patterns) or
+# `writing_material` (highlights for drafting, source bundles).
 
 
 def _build_version() -> str:
@@ -126,7 +122,8 @@ async def health_check(request: Request) -> JSONResponse:
         "build": _build,
         "git_commit": _git_commit,
         "uptime_seconds": int((datetime.now(timezone.utc) - _start_time).total_seconds()),
-        "tools": 17,
+        "tools": 11,
+        "engagement_index": index_status(),
     })
 
 
