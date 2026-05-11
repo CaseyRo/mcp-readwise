@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     # Bearer token auth for MCP Portal
     mcp_api_key: SecretStr = SecretStr("")
 
+    # Engagement index
+    engagement_index_ttl_seconds: int = 1800  # 30 minutes
+    engagement_tag_denylist: str = ""  # comma-separated; empty = use defaults
+
     model_config = {"env_prefix": "", "case_sensitive": False}
 
     @field_validator("readwise_base_url")

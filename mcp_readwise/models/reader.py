@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Literal, Optional
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
+
+
+ReadingStatus = Literal["finished", "in_progress", "saved_only"]
 
 
 class ReaderDocument(BaseModel):
@@ -21,6 +24,13 @@ class ReaderDocument(BaseModel):
     tags: list[str] = []
     created_at: str = ""
     updated_at: str = ""
+    # Reader v3 engagement fields
+    saved_at: str = ""
+    first_opened_at: str = ""
+    last_opened_at: str = ""
+    last_moved_at: str = ""
+    # Derived
+    reading_status: ReadingStatus = "saved_only"
 
     @field_validator("*", mode="before")
     @classmethod
@@ -29,6 +39,26 @@ class ReaderDocument(BaseModel):
             field = cls.model_fields.get(info.field_name)
             return field.default if field and field.default is not None else v
         return v
+
+    @model_validator(mode="after")
+    def derive_reading_status(self) -> "ReaderDocument":
+        """Derive reading_status from location and reading_progress.
+
+        Rules (in order):
+        1. location == "archive" → "finished" (archive implies user marked done)
+        2. reading_progress >= 0.9 → "finished" (PDFs often top out at 0.9)
+        3. 0 < reading_progress < 0.9 → "in_progress"
+        4. otherwise (progress = 0, location in {new, later, feed, ...}) → "saved_only"
+        """
+        if self.location == "archive":
+            self.reading_status = "finished"
+        elif self.reading_progress >= 0.9:
+            self.reading_status = "finished"
+        elif self.reading_progress > 0:
+            self.reading_status = "in_progress"
+        else:
+            self.reading_status = "saved_only"
+        return self
 
 
 class ReaderListResult(BaseModel):

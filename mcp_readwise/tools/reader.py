@@ -79,6 +79,10 @@ async def list_documents(
                 tags=tags,
                 created_at=item.get("created_at", ""),
                 updated_at=item.get("updated_at", ""),
+                saved_at=item.get("saved_at", ""),
+                first_opened_at=item.get("first_opened_at", ""),
+                last_opened_at=item.get("last_opened_at", ""),
+                last_moved_at=item.get("last_moved_at", ""),
             )
         )
 
@@ -117,6 +121,10 @@ async def get_document(document_id: str) -> ReaderDocument:
         tags=tags,
         created_at=data.get("created_at", ""),
         updated_at=data.get("updated_at", ""),
+        saved_at=data.get("saved_at", ""),
+        first_opened_at=data.get("first_opened_at", ""),
+        last_opened_at=data.get("last_opened_at", ""),
+        last_moved_at=data.get("last_moved_at", ""),
     )
 
 
@@ -125,7 +133,7 @@ async def save_url(
     title: Optional[str] = None,
     tags: Optional[list[str]] = None,
     location: Literal["new", "later", "shortlist", "archive"] = "new",
-    notes: Optional[str] = None,
+    note: Optional[str] = None,
 ) -> ReaderDocument:
     """Save a URL to Readwise Reader.
 
@@ -134,15 +142,18 @@ async def save_url(
     are accepted.
 
     location controls where it appears: 'new' (inbox), 'later', 'shortlist',
-    or 'archive'. Default is 'new'.
+    or 'archive'. Default is 'new'. Use `note` (singular) for any annotation
+    you want attached to the saved document.
     """
     payload: dict = {"url": str(url), "location": location}
     if title:
         payload["title"] = title
     if tags:
         payload["tags"] = tags
-    if notes:
-        payload["notes"] = notes
+    if note:
+        # Reader v3 endpoint accepts the field as `notes` (plural); MCP surface
+        # standardizes on singular `note` to match the highlights endpoints.
+        payload["notes"] = note
 
     data = await client.post("/api/v3/save/", **payload)
 
@@ -163,6 +174,7 @@ async def save_url(
         tags=doc_tags,
         created_at=data.get("created_at", ""),
         updated_at=data.get("updated_at", ""),
+        saved_at=data.get("saved_at", ""),
     )
 
 

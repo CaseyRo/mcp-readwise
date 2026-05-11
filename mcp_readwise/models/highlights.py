@@ -19,6 +19,9 @@ class HighlightResult(BaseModel):
     highlighted_at: str = ""
     created_at: str = ""
     updated_at: str = ""
+    # First-class booleans (separate from tags per Readwise v2 docs)
+    is_favorite: bool = False
+    is_discard: bool = False
 
     @field_validator("*", mode="before")
     @classmethod
