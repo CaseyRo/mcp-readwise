@@ -13,7 +13,9 @@ from mcp_readwise.config import settings
 logger = logging.getLogger(__name__)
 
 _MAX_RETRIES = 3
+_MAX_RETRIES_429 = 6
 _BACKOFF_BASE = 2.0
+_RETRY_AFTER_CAP_SECONDS = 90.0
 _BOOK_CACHE_SIZE = 512
 
 
@@ -36,6 +38,20 @@ class ReadwiseClient:
         )
         self._book_cache: dict[int, dict[str, Any]] = {}
 
+    def _parse_retry_after(self, resp: httpx.Response) -> float | None:
+        """Parse the Retry-After header (seconds form). Returns None if absent or invalid."""
+        try:
+            raw = resp.headers.get("Retry-After") or resp.headers.get("retry-after")
+        except (AttributeError, TypeError):
+            return None
+        if not raw or not isinstance(raw, str):
+            return None
+        try:
+            seconds = float(raw)
+        except ValueError:
+            return None
+        return max(0.0, min(seconds, _RETRY_AFTER_CAP_SECONDS))
+
     async def _request(
         self,
         method: str,
@@ -44,21 +60,46 @@ class ReadwiseClient:
         params: dict[str, Any] | None = None,
         json: dict[str, Any] | None = None,
     ) -> Any:
-        """Execute an HTTP request with retry and rate-limit backoff."""
-        last_exc: Exception | None = None
-        for attempt in range(_MAX_RETRIES + 1):
+        """Execute an HTTP request with retry and rate-limit backoff.
+
+        429 responses honor the Retry-After header when present, capped at
+        90 seconds. Without Retry-After, exponential backoff is used. 429s
+        have an independent retry budget (`_MAX_RETRIES_429`) since rate
+        limits are normal upstream behavior, not failures; this keeps a
+        429 storm from exhausting the 5xx retry slot.
+        """
+        server_error_attempts = 0
+        rate_limited_attempts = 0
+        while True:
             try:
                 resp = await self._client.request(
                     method, path, params=params, json=json
                 )
                 if resp.status_code == 429:
-                    wait = _BACKOFF_BASE ** (attempt + 1)
-                    logger.warning("Rate limited (429), backing off %.1fs", wait)
-                    last_exc = httpx.HTTPStatusError(
-                        "429 Too Many Requests",
-                        request=resp.request,
-                        response=resp,
-                    )
+                    rate_limited_attempts += 1
+                    if rate_limited_attempts > _MAX_RETRIES_429:
+                        raise httpx.HTTPStatusError(
+                            "429 Too Many Requests (retry budget exhausted)",
+                            request=resp.request,
+                            response=resp,
+                        )
+                    retry_after = self._parse_retry_after(resp)
+                    if retry_after is not None:
+                        wait = retry_after
+                        logger.warning(
+                            "Rate limited (429), Retry-After=%.1fs (attempt %d/%d)",
+                            wait,
+                            rate_limited_attempts,
+                            _MAX_RETRIES_429,
+                        )
+                    else:
+                        wait = _BACKOFF_BASE ** rate_limited_attempts
+                        logger.warning(
+                            "Rate limited (429), exponential backoff %.1fs (attempt %d/%d)",
+                            wait,
+                            rate_limited_attempts,
+                            _MAX_RETRIES_429,
+                        )
                     await asyncio.sleep(wait)
                     continue
                 resp.raise_for_status()
@@ -66,35 +107,34 @@ class ReadwiseClient:
                     return None
                 return resp.json()
             except httpx.HTTPStatusError as exc:
-                if exc.response.status_code >= 500 and attempt < _MAX_RETRIES:
-                    wait = _BACKOFF_BASE ** (attempt + 1)
+                if exc.response.status_code >= 500:
+                    server_error_attempts += 1
+                    if server_error_attempts > _MAX_RETRIES:
+                        raise
+                    wait = _BACKOFF_BASE ** server_error_attempts
                     logger.warning(
                         "Server error %d, retry %d/%d in %.1fs",
                         exc.response.status_code,
-                        attempt + 1,
+                        server_error_attempts,
                         _MAX_RETRIES,
                         wait,
                     )
                     await asyncio.sleep(wait)
-                    last_exc = exc
                     continue
                 raise
-            except (httpx.ConnectError, httpx.ReadTimeout) as exc:
-                if attempt < _MAX_RETRIES:
-                    wait = _BACKOFF_BASE ** (attempt + 1)
-                    logger.warning(
-                        "Connection error, retry %d/%d in %.1fs",
-                        attempt + 1,
-                        _MAX_RETRIES,
-                        wait,
-                    )
-                    await asyncio.sleep(wait)
-                    last_exc = exc
-                    continue
-                raise
-        if last_exc:
-            raise last_exc
-        raise RuntimeError("Retries exhausted")
+            except (httpx.ConnectError, httpx.ReadTimeout):
+                server_error_attempts += 1
+                if server_error_attempts > _MAX_RETRIES:
+                    raise
+                wait = _BACKOFF_BASE ** server_error_attempts
+                logger.warning(
+                    "Connection error, retry %d/%d in %.1fs",
+                    server_error_attempts,
+                    _MAX_RETRIES,
+                    wait,
+                )
+                await asyncio.sleep(wait)
+                continue
 
     async def get(self, path: str, **params: Any) -> Any:
         cleaned = {k: v for k, v in params.items() if v is not None}

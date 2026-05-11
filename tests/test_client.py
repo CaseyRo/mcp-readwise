@@ -70,6 +70,7 @@ class TestRetryLogic:
     async def test_retries_on_rate_limit(self, make_client):
         mock_resp_429 = MagicMock()
         mock_resp_429.status_code = 429
+        mock_resp_429.headers = {}  # No Retry-After → exponential backoff
 
         mock_resp_ok = MagicMock()
         mock_resp_ok.status_code = 200
@@ -91,6 +92,154 @@ class TestRetryLogic:
 
         assert call_count == 2
         assert result == {"ok": True}
+
+    @pytest.mark.asyncio
+    async def test_retry_after_header_respected(self, make_client):
+        """When 429 includes a Retry-After header, the client waits that long."""
+        mock_resp_429 = MagicMock()
+        mock_resp_429.status_code = 429
+        mock_resp_429.headers = {"Retry-After": "47"}
+
+        mock_resp_ok = MagicMock()
+        mock_resp_ok.status_code = 200
+        mock_resp_ok.json.return_value = {"ok": True}
+        mock_resp_ok.raise_for_status = MagicMock()
+
+        call_count = 0
+
+        async def mock_request(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                return mock_resp_429
+            return mock_resp_ok
+
+        sleep_waits = []
+
+        async def capture_sleep(seconds):
+            sleep_waits.append(seconds)
+
+        with patch.object(make_client._client, "request", side_effect=mock_request):
+            with patch("mcp_readwise.client.asyncio.sleep", side_effect=capture_sleep):
+                result = await make_client.get("/api/v2/export/")
+
+        assert result == {"ok": True}
+        assert sleep_waits == [47.0]
+
+    @pytest.mark.asyncio
+    async def test_retry_after_capped(self, make_client):
+        """Retry-After values above the cap are clamped (defend against malicious or bug responses)."""
+        mock_resp_429 = MagicMock()
+        mock_resp_429.status_code = 429
+        mock_resp_429.headers = {"Retry-After": "9999"}  # 2.5 hours — way too long
+
+        mock_resp_ok = MagicMock()
+        mock_resp_ok.status_code = 200
+        mock_resp_ok.json.return_value = {}
+        mock_resp_ok.raise_for_status = MagicMock()
+
+        call_count = 0
+
+        async def mock_request(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            return mock_resp_429 if call_count == 1 else mock_resp_ok
+
+        sleep_waits = []
+
+        async def capture_sleep(seconds):
+            sleep_waits.append(seconds)
+
+        with patch.object(make_client._client, "request", side_effect=mock_request):
+            with patch("mcp_readwise.client.asyncio.sleep", side_effect=capture_sleep):
+                await make_client.get("/api/v2/export/")
+
+        # Capped at _RETRY_AFTER_CAP_SECONDS (90.0)
+        assert sleep_waits == [90.0]
+
+    @pytest.mark.asyncio
+    async def test_429_retry_budget_independent_from_5xx(self, make_client):
+        """A storm of 429s shouldn't exhaust the 5xx retry slot.
+
+        With _MAX_RETRIES=3 and _MAX_RETRIES_429=6, six 429s in a row should
+        still recover when the seventh request succeeds — even though that's
+        more than _MAX_RETRIES total attempts.
+        """
+        mock_resp_429 = MagicMock()
+        mock_resp_429.status_code = 429
+        mock_resp_429.headers = {"Retry-After": "1"}
+
+        mock_resp_ok = MagicMock()
+        mock_resp_ok.status_code = 200
+        mock_resp_ok.json.return_value = {"ok": True}
+        mock_resp_ok.raise_for_status = MagicMock()
+
+        call_count = 0
+
+        async def mock_request(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            return mock_resp_429 if call_count <= 5 else mock_resp_ok
+
+        with patch.object(make_client._client, "request", side_effect=mock_request):
+            with patch("mcp_readwise.client.asyncio.sleep", new_callable=AsyncMock):
+                result = await make_client.get("/api/v2/export/")
+
+        assert call_count == 6
+        assert result == {"ok": True}
+
+    @pytest.mark.asyncio
+    async def test_429_budget_eventually_exhausts(self, make_client):
+        """After _MAX_RETRIES_429 + 1 consecutive 429s, the client gives up."""
+        mock_resp_429 = MagicMock()
+        mock_resp_429.status_code = 429
+        mock_resp_429.headers = {"Retry-After": "1"}
+
+        call_count = 0
+
+        async def mock_request(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            return mock_resp_429
+
+        with patch.object(make_client._client, "request", side_effect=mock_request):
+            with patch("mcp_readwise.client.asyncio.sleep", new_callable=AsyncMock):
+                with pytest.raises(httpx.HTTPStatusError, match="retry budget exhausted"):
+                    await make_client.get("/api/v2/export/")
+
+        # Exactly _MAX_RETRIES_429 + 1 = 7 attempts before bailing
+        assert call_count == 7
+
+    @pytest.mark.asyncio
+    async def test_malformed_retry_after_falls_back_to_exponential(self, make_client):
+        """Non-numeric Retry-After value should fall through to exponential backoff."""
+        mock_resp_429 = MagicMock()
+        mock_resp_429.status_code = 429
+        mock_resp_429.headers = {"Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"}
+
+        mock_resp_ok = MagicMock()
+        mock_resp_ok.status_code = 200
+        mock_resp_ok.json.return_value = {}
+        mock_resp_ok.raise_for_status = MagicMock()
+
+        call_count = 0
+
+        async def mock_request(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            return mock_resp_429 if call_count == 1 else mock_resp_ok
+
+        sleep_waits = []
+
+        async def capture_sleep(seconds):
+            sleep_waits.append(seconds)
+
+        with patch.object(make_client._client, "request", side_effect=mock_request):
+            with patch("mcp_readwise.client.asyncio.sleep", side_effect=capture_sleep):
+                await make_client.get("/api/v2/export/")
+
+        # First retry → 2^1 = 2.0 seconds (HTTP-date format not supported; falls back)
+        assert sleep_waits == [2.0]
 
 
 class TestBookCache:
