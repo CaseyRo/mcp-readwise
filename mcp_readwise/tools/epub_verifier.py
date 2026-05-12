@@ -60,7 +60,7 @@ async def verify_epub_received(
     docs = await list_documents(
         category="epub",
         updated_after=since,
-        limit=20,
+        limit=50,
     )
 
     for doc in docs.results:

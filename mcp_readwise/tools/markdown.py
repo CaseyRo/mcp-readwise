@@ -27,7 +27,12 @@ async def save_markdown(
     image_url: Optional[str] = None,
     note: Optional[str] = None,
 ) -> ReaderDocument:
-    """Save a markdown document to Readwise Reader.
+    """Save a markdown document to Readwise Reader as rendered HTML (sync).
+
+    For a real EPUB with TOC, chapter navigation, and downloadable EPUB
+    export from Reader, use `save_markdown_as_epub` instead — this tool
+    posts HTML with a `category="epub"` UI hint, which is lighter-weight
+    but is not a true EPUB file.
 
     Use this for content you own — notes, drafts, distilled summaries,
     briefings — that you want to read in Reader's long-form view. For
