@@ -109,6 +109,8 @@ The Readwise Reader API has no file-upload endpoint (confirmed against the v3 AP
 
 ### save_markdown_as_epub (real EPUB path)
 
+![EPUB rendered by save_markdown_as_epub, opened in Readwise Reader. The CDIT brand stylesheet survives Reader's renderer: Strong Blue H1 underlines, Inter typography, the mint-rail "Note" preface block from the frontmatter `note:` field, and Reader's own TOC sidebar listing the auto-generated chapters.](docs/screenshots/v0.6.0-epub-in-reader.png)
+
 For when you want the content to actually be a book in Reader — TOC, chapter navigation, EPUB export to Kobo/Boox/Kindle. Renders the markdown through pandoc with the **CDIT brand stylesheet** (palette + typography baked in from cdit-works.de — see "Brand stylesheet" below) and emails the resulting EPUB as an attachment to your Readwise Library email through Resend SMTP.
 
 **Setup** — three env vars required (server boots without them; other 13 tools keep working):
