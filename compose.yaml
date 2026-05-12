@@ -13,6 +13,9 @@ services:
       - HOST=0.0.0.0
       - READWISE_TOKEN=${READWISE_TOKEN:-}
       - MCP_API_KEY=${MCP_API_KEY:-}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - READWISE_LIBRARY_EMAIL=${READWISE_LIBRARY_EMAIL:-}
+      - EPUB_FROM_ADDRESS=${EPUB_FROM_ADDRESS:-}
       - FASTMCP_HOME=/data/fastmcp
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
     deploy:

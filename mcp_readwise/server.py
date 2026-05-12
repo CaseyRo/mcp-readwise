@@ -19,6 +19,9 @@ from mcp_readwise.tools.highlights import (
     delete_highlight,
     update_highlight,
 )
+from mcp_readwise.tools.epub_sender import save_markdown_as_epub
+from mcp_readwise.tools.epub_verifier import verify_epub_received
+from mcp_readwise.tools.markdown import save_markdown
 from mcp_readwise.tools.reader import (
     save_url,
     update_progress,
@@ -90,6 +93,9 @@ mcp.tool(tag_highlight)
 
 # Reader — write/update only (read paths absorbed by reading_status / writing_material)
 mcp.tool(save_url)
+mcp.tool(save_markdown)
+mcp.tool(save_markdown_as_epub)
+mcp.tool(verify_epub_received)
 mcp.tool(update_progress)
 
 # NOTE: v0.4.0 BREAKING — the following read primitives are no longer
@@ -122,8 +128,15 @@ async def health_check(request: Request) -> JSONResponse:
         "build": _build,
         "git_commit": _git_commit,
         "uptime_seconds": int((datetime.now(timezone.utc) - _start_time).total_seconds()),
-        "tools": 11,
+        "tools": 14,
         "engagement_index": index_status(),
+        "epub_sender": {
+            "configured": settings.epub_sender_configured,
+            "smtp_host": settings.smtp_host,
+            "smtp_port": settings.smtp_port,
+            "from_address": settings.epub_from_address,
+            "library_email_set": bool(settings.readwise_library_email),
+        },
     })
 
 

@@ -76,8 +76,8 @@
 - [x] 8.3 Linked README to `design.md` for the full formula
 - [x] 8.4 Bumped version to `0.4.0` in `pyproject.toml` and `mcp_readwise/__init__.py`
 - [x] 8.5 Full test suite (110 tests) green; ruff clean
-- [ ] 8.6 (USER) Push to main; verify Komodo webhook triggers rebuild on `ubuntu-smurf-mirror`
-- [ ] 8.7 (USER) Smoke test deployed instance: `/health` reports `tools: 11`; `mcp inspector` lists `reading_status` + `writing_material`; `reading_status()` returns a populated snapshot in <5s cold
+- [x] 8.6 Pushed to main (`d50bf81` → `0774d94` → `8a8363a`); auto-deploy chain fixed mid-ship — discovered webhook URL was on wrong path (`/webhook/*` instead of v2's `/listener/github/stack/...`), GitHub webhook URL corrected, secret rotated atomically on both sides. Auto-deploy now functional. Stack: `git-mcp-readwise-mini` on `ubuntu-smurf-mini`.
+- [x] 8.7 Smoke test passed: `/health` reports `version: "0.4.0"`, `tools: 11`, fresh container uptime. 11 tools verified by name (reading_status, writing_material + 9 write/util). Cold-call rate-limit issue surfaced and fixed in flight via `0774d94` (Retry-After support + separate 429 retry budget). Known pre-existing issue not blocking: Komodo isn't injecting `GIT_COMMIT` build arg, so `/health.git_commit` shows `"unknown"`.
 
 ## 9. Pre-implementation spike (COMPLETE — findings folded into design D3)
 

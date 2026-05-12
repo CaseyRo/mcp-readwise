@@ -1,0 +1,211 @@
+/*
+ * CDIT brand stylesheet for EPUB output.
+ * Inherits palette from cdit-works.de; typography deliberately diverges:
+ * League Gothic stays on the website (wordmark moment) — never in body
+ * headings here. Inter weight 800 with tight tracking holds the brand
+ * through color + weight contrast, without condensed-display fatigue
+ * across long-form chapter breaks.
+ */
+
+@namespace epub "http://www.idpf.org/2007/ops";
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("fonts/inter-400-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+                 U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191,
+                 U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("fonts/inter-400-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB,
+                 U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("fonts/inter-700-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+                 U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191,
+                 U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("fonts/inter-700-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB,
+                 U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("fonts/inter-800-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+                 U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191,
+                 U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("fonts/inter-800-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB,
+                 U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+               Roboto, sans-serif;
+  color: #272f38;                      /* Carbon */
+  background: #f0eee9;                 /* Cloud Dancer */
+  font-weight: 400;
+  font-size: 1em;
+  line-height: 1.7;                    /* tuned for long-form */
+  text-align: left;                    /* never justify in EPUB */
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  margin: 0;
+  padding: 1em 1.2em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: #272f38;
+  page-break-after: avoid;
+}
+
+h1 {
+  font-size: 2.2em;
+  border-bottom: 4px solid #1f5da0;    /* Strong Blue */
+  padding-bottom: 0.3em;
+  margin-top: 0;
+  margin-bottom: 0.8em;
+  page-break-before: always;
+}
+
+h2 {
+  font-size: 1.55em;
+  margin-top: 1.8em;
+  margin-bottom: 0.5em;
+}
+
+h3 {
+  font-size: 1.2em;
+  color: #5c5f66;                      /* Carbon muted */
+  margin-top: 1.4em;
+  margin-bottom: 0.4em;
+}
+
+p {
+  margin: 0 0 1em 0;
+}
+
+a, a:visited {
+  color: #1f5da0;                      /* Strong Blue */
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+blockquote {
+  border-left: 4px solid #5cc6c3;      /* Mint / Rinsing Rivulet */
+  padding-left: 1em;
+  margin-left: 0;
+  margin-right: 0;
+  color: #5c5f66;
+  font-style: italic;
+}
+
+code {
+  font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo,
+               Consolas, monospace;
+  background: rgba(197, 192, 208, 0.18); /* Lavender Blue, faded */
+  font-size: 0.9em;
+  padding: 0.1em 0.3em;
+  border-radius: 2px;
+}
+
+pre {
+  font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo,
+               Consolas, monospace;
+  background: rgba(197, 192, 208, 0.18);
+  font-size: 0.9em;
+  padding: 1em;
+  border-left: 3px solid #1f5da0;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+pre code {
+  background: transparent;
+  padding: 0;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid #c5c0d0;       /* Lavender Blue */
+  margin: 2em 0;
+}
+
+table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  width: 100%;
+}
+th, td {
+  border-bottom: 1px solid #c5c0d0;
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+th {
+  font-weight: 700;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+.eyebrow {
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-weight: 700;
+  color: #5c5f66;
+}
+
+/* Note preface block — rendered when the caller passes `note=` */
+.mcp-note {
+  border-left: 4px solid #5cc6c3;
+  background: rgba(92, 198, 195, 0.08);
+  padding: 0.8em 1em;
+  margin: 0 0 2em 0;
+  font-style: italic;
+  color: #5c5f66;
+}
+.mcp-note::before {
+  content: "Note";
+  display: block;
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-weight: 700;
+  color: #272f38;
+  font-style: normal;
+  margin-bottom: 0.4em;
+}
