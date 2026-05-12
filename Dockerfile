@@ -4,6 +4,10 @@ WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends pandoc \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY pyproject.toml README.md ./
 COPY mcp_readwise/ ./mcp_readwise/
 

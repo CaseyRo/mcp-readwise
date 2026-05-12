@@ -1,6 +1,6 @@
 # mcp-readwise
 
-MCP server for [Readwise](https://readwise.io) built on [FastMCP](https://github.com/prefecthq/fastmcp). Two engagement-aware read tools (`reading_status`, `writing_material`) plus the standard write surface — 11 tools total.
+MCP server for [Readwise](https://readwise.io) built on [FastMCP](https://github.com/prefecthq/fastmcp). Two engagement-aware read tools (`reading_status`, `writing_material`) plus the standard write surface — 14 tools total.
 
 ## What's different in v0.4.0
 
@@ -72,6 +72,9 @@ docker compose up -d
 | `update_highlight` | Update text or `note` |
 | `delete_highlight` | Delete by ID |
 | `save_url` | Save a URL to Reader (uses singular `note`) |
+| `save_markdown` | Save a markdown blob to Reader as rendered HTML with `category="epub"` UI hint. Synchronous; returns `ReaderDocument`. See "Three ways to save owned markdown" below. |
+| `save_markdown_as_epub` | Render markdown to a real EPUB 3 via pandoc (with CDIT brand styling) and email it to your Readwise Library address through a Resend SMTP relay. **Async** — returns `EpubSendResult` after SMTP delivery; document materializes in Reader in 1–5 minutes. Use `verify_epub_received` to confirm. Requires three env vars. |
+| `verify_epub_received` | Confirm a `save_markdown_as_epub` send has landed in Reader. Pass `title` and `accepted_at` from the send result. Returns `VerifyResult` with time-aware retry guidance. |
 | `update_progress` | Update reading progress (0.0–1.0) |
 
 ### Tags
@@ -82,6 +85,93 @@ docker compose up -d
 | `create_tag` | Create a new tag |
 | `delete_tag` | Delete a tag by ID |
 | `tag_highlight` | Add or remove a tag on a highlight |
+
+## Three ways to save owned content into Reader
+
+| Want | Use | Sync/Async | Fidelity | Setup cost |
+|------|-----|------------|----------|------------|
+| Save a URL (Readwise fetches & parses) | `save_url` | sync | HTML article | none |
+| Save your markdown as HTML with epub-UX hint | `save_markdown` | sync | HTML with `category="epub"` | none |
+| Save your markdown as a real EPUB book | `save_markdown_as_epub` | **async** (1–5 min) | True EPUB 3 with TOC, chapter nav, CDIT brand styling | requires Resend + library email setup |
+
+The Readwise Reader API has no file-upload endpoint (confirmed against the v3 API and their own official CLI). Real EPUB ingestion exists only via the email-to-library mechanism, which `save_markdown_as_epub` automates through Resend SMTP.
+
+### save_markdown (HTML path)
+
+`save_url` is for URLs Readwise fetches and parses. `save_markdown` is for content you already have as markdown — notes, drafts, distilled summaries — that you want sitting in Reader's queue with the long-form reader UX, but where you don't need the full EPUB experience (TOC, chapter nav, e-reader export).
+
+1. Parses optional YAML frontmatter for metadata
+2. Renders the body to clean HTML (`extra`, `sane_lists`, `smarty` extensions — tables, footnotes, fenced code, smart quotes)
+3. POSTs to `/api/v3/save/` with `html=...`, `should_clean_html=false`, and `category="epub"` by default
+4. Returns the resulting `ReaderDocument` synchronously
+
+**Synthetic URL**: Reader requires a `url` field. The tool generates `https://mcp-readwise.local/md/<sha1(title + body[:512])[:16]>` so re-uploading identical content updates the same Reader entry. Filter Reader queries by this host prefix to find tool-uploaded content.
+
+### save_markdown_as_epub (real EPUB path)
+
+For when you want the content to actually be a book in Reader — TOC, chapter navigation, EPUB export to Kobo/Boox/Kindle. Renders the markdown through pandoc with the **CDIT brand stylesheet** (palette + typography baked in from cdit-works.de — see "Brand stylesheet" below) and emails the resulting EPUB as an attachment to your Readwise Library email through Resend SMTP.
+
+**Setup** — three env vars required (server boots without them; other 13 tools keep working):
+
+```bash
+# Your custom Readwise Library email — find at:
+# read.readwise.io → Account → Personalize email addresses
+# This address is a bearer credential; rotate via Readwise if it leaks.
+READWISE_LIBRARY_EMAIL=casey-personal@library.readwise.io
+
+# Resend API key (used as SMTP password). From resend.com → API Keys.
+RESEND_API_KEY=re_…
+
+# Verified sender domain registered in Resend. Resend will reject sends
+# from unverified domains.
+# Must be on a verified Resend domain. For this project: cdit-dev.de.
+EPUB_FROM_ADDRESS=mcp-readwise@cdit-dev.de
+```
+
+**Two-step flow** (chain `save_markdown_as_epub` → `verify_epub_received`):
+
+```
+save_markdown_as_epub(markdown=…) → EpubSendResult(title, accepted_at, …)
+# wait 1–2 minutes
+verify_epub_received(title=…, since=…) → VerifyResult(found=True, document=…)
+```
+
+The tool's docstring leads with the async contract loudly — LLM agents reading the schema before calling know not to tell the human "done" until `verify_epub_received` confirms ingest.
+
+**Idempotency**: pass `idempotency_key="some-stable-string"` (e.g. SHA-256 of title+body, or a workflow ID). The EPUB's `dc:identifier` becomes `epub-key-<key>`, so retries with the same key collapse into one Library entry instead of duplicating. Omit for one-shot semantics (fresh UUID per call).
+
+**Pandoc in the image**: the Docker image bakes in `pandoc` (~150MB) for EPUB generation. The cost is accepted as the price of admission for real EPUB output.
+
+### Frontmatter (both tools)
+
+```markdown
+---
+title: My Note
+author: Casey
+summary: A brief description.
+tags: [research, draft]
+note: Context from the author.
+published_date: 2026-05-11
+image_url: https://example.com/cover.jpg
+---
+# Body starts here
+
+Content with **markdown** features.
+```
+
+**Title resolution** (first non-empty wins): explicit `title=` param → frontmatter `title:` → first `# H1` in body → `"Untitled"`. The same precedence applies to other fields (without the H1 fallback).
+
+### Brand stylesheet
+
+The EPUB output uses a hand-tuned CSS shipped at `mcp_readwise/assets/epub/cdit-style.css`, with the CDIT palette from cdit-works.de:
+
+- Carbon `#272f38` (body text), Cloud Dancer `#f0eee9` (page background)
+- Strong Blue `#1f5da0` (links, chapter underline), Mint `#5cc6c3` (blockquote rail)
+- Inter weight 400 / 700 / 800 embedded as static woff2 subsets (latin + latin-ext, ~170KB)
+- Heading typography deliberately diverges from the website: chapter heads use Inter weight 800 with tracking `-0.02em`, not League Gothic — condensed display fonts become fatiguing across long-form chapter breaks
+- `body { line-height: 1.7; text-align: left; hyphens: auto; }` tuned for sustained reading rather than screen UI
+
+To customize: fork `cdit-style.css` and override the brand variables. The CSS file is intentionally a first-class editable asset, not generated Python.
 
 ## How the engagement score works (high level)
 
