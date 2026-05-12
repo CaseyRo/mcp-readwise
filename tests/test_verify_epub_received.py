@@ -179,7 +179,7 @@ class TestQueryParameters:
         await verify_epub_received(title="X", since=since)
         assert captured["category"] == "epub"
         assert captured["updated_after"] == since
-        assert captured["limit"] == 20
+        assert captured["limit"] == 50
 
 
 class TestDoesNotRequireEpubSenderConfig:
