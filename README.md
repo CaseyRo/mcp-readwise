@@ -6,7 +6,7 @@ MCP server for [Readwise](https://readwise.io) and Readwise Reader, built on [Fa
 
 ## Why this exists
 
-The most common source of "long markdown that needs a reading home" in 2026 is **research output from Claude, OpenAI, and other agent loops**. Deep-research mode produces 3000–8000 word briefs in a single tool turn. They arrive as markdown in a chat window, and they shouldn't stay there — they want chapter navigation, a TOC sidebar, and the option to be read offline on a Kobo, a Boox, or a Kindle.
+The most common source of "long markdown that needs a reading home" in 2026 is **research output from Claude, OpenAI, and other agent loops**. Deep-research mode produces 3000–8000 word briefs in a single tool turn. They arrive as markdown in a chat window, and they shouldn't stay there — they want chapter navigation, a TOC sidebar, downloadable export to a Kobo / Boox / Kindle, and most often **the Readwise iOS and iPad apps**, which are quietly the best long-form reading and highlighting clients on those devices.
 
 This MCP server is the transporter for that markdown into Reader. An agent calls `save_markdown_as_epub`, the EPUB appears in your Library a minute later, and the chat window is no longer your reading place.
 
