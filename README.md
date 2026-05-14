@@ -4,6 +4,12 @@ MCP server for [Readwise](https://readwise.io) and Readwise Reader, built on [Fa
 
 14 tools. Python 3.12. Deployed via Docker.
 
+## Why this exists
+
+The most common source of "long markdown that needs a reading home" in 2026 is **research output from Claude, OpenAI, and other agent loops**. Deep-research mode produces 3000–8000 word briefs in a single tool turn. They arrive as markdown in a chat window, and they shouldn't stay there — they want chapter navigation, a TOC sidebar, and the option to be read offline on a Kobo, a Boox, or a Kindle.
+
+This MCP server is the transporter for that markdown into Reader. An agent calls `save_markdown_as_epub`, the EPUB appears in your Library a minute later, and the chat window is no longer your reading place.
+
 ## The niche-but-nice part: markdown → real EPUB in Reader
 
 ![EPUB rendered by save_markdown_as_epub, opened in Readwise Reader. The CDIT brand stylesheet survives Reader's renderer: Strong Blue H1 underlines, Inter typography, the mint-rail "Note" preface block from the frontmatter `note:` field, and Reader's own TOC sidebar listing the auto-generated chapters.](docs/screenshots/v0.6.0-epub-in-reader.png)
