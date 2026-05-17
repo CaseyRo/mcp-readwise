@@ -38,6 +38,10 @@ from mcp_readwise.tools.tags import (
 )
 from mcp_readwise.tools.writing import writing_material
 
+logging.basicConfig(
+    level=settings.log_level,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
 logger = logging.getLogger(__name__)
 
 _start_time = datetime.now(timezone.utc)
