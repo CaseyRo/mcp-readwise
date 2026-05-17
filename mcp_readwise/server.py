@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 import os
 import subprocess
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 from fastmcp import FastMCP
@@ -13,7 +16,7 @@ from starlette.responses import JSONResponse
 from mcp_readwise import __version__
 from mcp_readwise.auth import BearerTokenVerifier
 from mcp_readwise.config import settings
-from mcp_readwise.engagement import index_status
+from mcp_readwise.engagement import get_index, index_status
 from mcp_readwise.tools.highlights import (
     create_highlight,
     delete_highlight,
@@ -34,6 +37,8 @@ from mcp_readwise.tools.tags import (
     tag_highlight,
 )
 from mcp_readwise.tools.writing import writing_material
+
+logger = logging.getLogger(__name__)
 
 _start_time = datetime.now(timezone.utc)
 
@@ -74,7 +79,26 @@ if settings.transport == "http" and not _api_key:
     )
 _auth = BearerTokenVerifier(api_key=_api_key) if _api_key else None
 
-mcp = FastMCP("mcp-readwise", auth=_auth)
+
+@asynccontextmanager
+async def _lifespan(app):
+    """Pre-warm the engagement index in the background so the first
+    reading_status / writing_material call doesn't pay cold-start cost."""
+    async def _prewarm():
+        try:
+            await get_index()
+        except Exception:
+            logger.warning("Engagement index pre-warm failed", exc_info=True)
+
+    task = asyncio.create_task(_prewarm())
+    try:
+        yield
+    finally:
+        if not task.done():
+            task.cancel()
+
+
+mcp = FastMCP("mcp-readwise", auth=_auth, lifespan=_lifespan)
 
 # Read tools — engagement-aware (the v0.4.0 surface)
 mcp.tool(reading_status)
