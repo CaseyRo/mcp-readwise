@@ -26,8 +26,11 @@ class Settings(BaseSettings):
     mcp_api_key: SecretStr = SecretStr("")
 
     # Engagement index
-    engagement_index_ttl_seconds: int = 1800  # 30 minutes
+    engagement_index_ttl_seconds: int = 14400  # 4 hours
     engagement_tag_denylist: str = ""  # comma-separated; empty = use defaults
+
+    # Logging
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 
     # EPUB sender (save_markdown_as_epub) — lazy validation; empty defaults
     # let the rest of the server boot without these set.
