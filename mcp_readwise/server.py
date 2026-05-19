@@ -26,6 +26,8 @@ from mcp_readwise.tools.epub_sender import save_markdown_as_epub
 from mcp_readwise.tools.epub_verifier import verify_epub_received
 from mcp_readwise.tools.markdown import save_markdown
 from mcp_readwise.tools.reader import (
+    reader_get_by_url,
+    reader_list_documents,
     save_url,
     update_progress,
 )
@@ -119,12 +121,16 @@ mcp.tool(create_tag)
 mcp.tool(delete_tag)
 mcp.tool(tag_highlight)
 
-# Reader — write/update only (read paths absorbed by reading_status / writing_material)
+# Reader — write/update tools
 mcp.tool(save_url)
 mcp.tool(save_markdown)
 mcp.tool(save_markdown_as_epub)
 mcp.tool(verify_epub_received)
 mcp.tool(update_progress)
+
+# Reader — by-URL / archive lookup beyond the engagement cache (CDI-1147)
+mcp.tool(reader_list_documents)
+mcp.tool(reader_get_by_url)
 
 # NOTE: v0.4.0 BREAKING — the following read primitives are no longer
 # registered as MCP tools. Their client functions remain available for
@@ -156,7 +162,7 @@ async def health_check(request: Request) -> JSONResponse:
         "build": _build,
         "git_commit": _git_commit,
         "uptime_seconds": int((datetime.now(timezone.utc) - _start_time).total_seconds()),
-        "tools": 14,
+        "tools": 16,
         "engagement_index": index_status(),
         "epub_sender": {
             "configured": settings.epub_sender_configured,

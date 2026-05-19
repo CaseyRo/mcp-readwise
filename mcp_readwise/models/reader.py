@@ -65,3 +65,17 @@ class ReaderListResult(BaseModel):
     results: list[ReaderDocument]
     total: int
     next_page: Optional[int] = None
+
+
+class ReaderListPage(BaseModel):
+    """Cursor-paginated page of Reader documents.
+
+    Mirrors the Reader v3 list endpoint shape: `nextPageCursor` is an opaque
+    string (or null) returned by the API. Pass it back as `page_cursor` to
+    fetch the next page. Distinct from `ReaderListResult` so the internal
+    `list_documents` callers aren't broken by changing the pagination model.
+    """
+
+    results: list[ReaderDocument]
+    count: int = 0
+    next_cursor: Optional[str] = None
