@@ -262,6 +262,36 @@ class TestReaderTools:
         assert result.source_url == "https://example.com/article"
 
     @pytest.mark.asyncio
+    async def test_save_url_share_google_redirect(self):
+        """CDI-1149: share.google URLs come in as AnyHttpUrl; when the
+        Readwise response omits source_url, the fallback must coerce to str
+        rather than leaking the AnyHttpUrl into ReaderDocument(str)."""
+        # Simulate a response that lacks source_url (the failure mode reported)
+        saved = {
+            "id": "reader-share-google",
+            "title": "",
+            "author": "",
+            "category": "article",
+            "location": "new",
+        }
+
+        with patch("mcp_readwise.tools.reader.client") as mock_client:
+            mock_client.post = AsyncMock(return_value=saved)
+
+            from mcp_readwise.tools.reader import save_url
+
+            result = await save_url(
+                url="https://share.google/IZ41z97ziAth2cme3",
+                location="new",
+            )
+
+        # Construction succeeded — no Pydantic validation error
+        assert result.id == "reader-share-google"
+        # source_url falls back to the input URL, coerced to plain str
+        assert isinstance(result.source_url, str)
+        assert result.source_url.startswith("https://share.google/")
+
+    @pytest.mark.asyncio
     async def test_get_document_truncates_content(self):
         long_doc = {**SAMPLE_READER_DOC, "content": "x" * 100_000}
 

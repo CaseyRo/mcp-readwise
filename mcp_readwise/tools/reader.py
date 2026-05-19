@@ -145,7 +145,12 @@ async def save_url(
     or 'archive'. Default is 'new'. Use `note` (singular) for any annotation
     you want attached to the saved document.
     """
-    payload: dict = {"url": str(url), "location": location}
+    # `url` arrives as a Pydantic `AnyHttpUrl`. Always coerce to `str` before
+    # using it anywhere downstream (request payload, response fallback, model
+    # construction) — `ReaderDocument.source_url` is typed `str` and Pydantic v2
+    # does NOT auto-coerce `AnyHttpUrl` → `str` (CDI-1149).
+    url_str = str(url)
+    payload: dict = {"url": url_str, "location": location}
     if title:
         payload["title"] = title
     if tags:
@@ -167,7 +172,7 @@ async def save_url(
         id=str(data.get("id", "")),
         title=data.get("title", title or ""),
         author=data.get("author", ""),
-        source_url=data.get("source_url", url),
+        source_url=data.get("source_url") or url_str,
         category=data.get("category", ""),
         location=data.get("location", location),
         reading_progress=0.0,
