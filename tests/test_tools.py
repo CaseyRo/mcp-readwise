@@ -292,6 +292,116 @@ class TestReaderTools:
         assert result.source_url.startswith("https://share.google/")
 
     @pytest.mark.asyncio
+    async def test_reader_list_documents_archive(self):
+        """CDI-1147: cursor-paginated browse hits the full library, not
+        just the engagement cache."""
+        archived = {**SAMPLE_READER_DOC, "location": "archive"}
+        mock_response = {
+            "results": [archived],
+            "count": 1,
+            "nextPageCursor": "cursor-xyz",
+        }
+
+        with patch("mcp_readwise.tools.reader.client") as mock_client:
+            mock_client.get = AsyncMock(return_value=mock_response)
+
+            from mcp_readwise.tools.reader import reader_list_documents
+
+            result = await reader_list_documents(location="archive")
+
+        assert len(result.results) == 1
+        assert result.results[0].location == "archive"
+        assert result.next_cursor == "cursor-xyz"
+        # Verify the API was called with location=archive and limit
+        call_kwargs = mock_client.get.call_args[1]
+        assert call_kwargs["location"] == "archive"
+        assert call_kwargs["limit"] == 100
+
+    @pytest.mark.asyncio
+    async def test_reader_list_documents_cursor_pagination(self):
+        """page_cursor is passed through as pageCursor (Reader v3 spelling)."""
+        mock_response = {"results": [], "count": 0, "nextPageCursor": None}
+
+        with patch("mcp_readwise.tools.reader.client") as mock_client:
+            mock_client.get = AsyncMock(return_value=mock_response)
+
+            from mcp_readwise.tools.reader import reader_list_documents
+
+            result = await reader_list_documents(
+                location="archive", page_cursor="abc-123"
+            )
+
+        assert result.next_cursor is None
+        call_kwargs = mock_client.get.call_args[1]
+        assert call_kwargs["pageCursor"] == "abc-123"
+
+    @pytest.mark.asyncio
+    async def test_reader_get_by_url_match(self):
+        """CDI-1147: get_by_url scans pages and returns the matching doc."""
+        target = {**SAMPLE_READER_DOC, "id": "match", "source_url": "https://example.com/article"}
+        other = {**SAMPLE_READER_DOC, "id": "miss", "source_url": "https://other.com/x"}
+        mock_response = {
+            "results": [other, target],
+            "count": 2,
+            "nextPageCursor": None,
+        }
+
+        with patch("mcp_readwise.tools.reader.client") as mock_client:
+            mock_client.get = AsyncMock(return_value=mock_response)
+
+            from mcp_readwise.tools.reader import reader_get_by_url
+
+            result = await reader_get_by_url(
+                url="https://example.com/article/",  # trailing slash differs
+                location="archive",
+            )
+
+        assert result is not None
+        assert result.id == "match"
+        assert result.source_url == "https://example.com/article"
+
+    @pytest.mark.asyncio
+    async def test_reader_get_by_url_miss_returns_none(self):
+        """Missing URL returns None, doesn't raise. (CDI-1147 acceptance)"""
+        mock_response = {"results": [], "count": 0, "nextPageCursor": None}
+
+        with patch("mcp_readwise.tools.reader.client") as mock_client:
+            mock_client.get = AsyncMock(return_value=mock_response)
+
+            from mcp_readwise.tools.reader import reader_get_by_url
+
+            result = await reader_get_by_url(url="https://nowhere.example/x")
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_reader_get_by_url_paginates(self):
+        """Walk cursor pages until match found."""
+        page1 = {
+            "results": [{**SAMPLE_READER_DOC, "id": "p1", "source_url": "https://a.test/"}],
+            "count": 2,
+            "nextPageCursor": "next-cursor",
+        }
+        page2 = {
+            "results": [{**SAMPLE_READER_DOC, "id": "p2", "source_url": "https://b.test/"}],
+            "count": 2,
+            "nextPageCursor": None,
+        }
+
+        with patch("mcp_readwise.tools.reader.client") as mock_client:
+            mock_client.get = AsyncMock(side_effect=[page1, page2])
+
+            from mcp_readwise.tools.reader import reader_get_by_url
+
+            result = await reader_get_by_url(url="https://b.test/")
+
+        assert result is not None
+        assert result.id == "p2"
+        # Second call must have carried the cursor
+        second_call_kwargs = mock_client.get.call_args_list[1][1]
+        assert second_call_kwargs["pageCursor"] == "next-cursor"
+
+    @pytest.mark.asyncio
     async def test_get_document_truncates_content(self):
         long_doc = {**SAMPLE_READER_DOC, "content": "x" * 100_000}
 
