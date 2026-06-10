@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from mcp_readwise.models.source import Source
 
@@ -12,15 +12,18 @@ from mcp_readwise.models.source import Source
 class HighlightInMaterial(BaseModel):
     """A highlight enriched with the context an LLM needs to draft from it."""
 
-    id: int
+    model_config = ConfigDict(extra="allow")
+
+    id: int = 0
     text: str = ""
     note: str = ""
-    tags: list[str] = []
+    tags: list[str] = Field(default_factory=list)
     highlighted_at: str = ""
     is_favorite: bool = False
     book_id: Optional[int] = None
     book_title: str = ""
     book_author: str = ""
+    error: Optional[str] = None
 
     @field_validator("*", mode="before")
     @classmethod
@@ -47,11 +50,14 @@ class WritingMaterial(BaseModel):
     aggregated, also surfaced via `grouped_by_source`. `summary` empty.
     """
 
-    sources: list[Source] = []
-    highlights: list[HighlightInMaterial] = []
-    grouped_by_source: dict[str, list[HighlightInMaterial]] = {}
+    model_config = ConfigDict(extra="allow")
+
+    sources: list[Source] = Field(default_factory=list)
+    highlights: list[HighlightInMaterial] = Field(default_factory=list)
+    grouped_by_source: dict[str, list[HighlightInMaterial]] = Field(default_factory=dict)
     summary: str = ""
     has_notes: bool = False
     has_legacy: bool = False
     has_more: bool = False
     total_highlights: int = 0
+    error: Optional[str] = None
