@@ -8,6 +8,7 @@ from pydantic import Field
 
 from mcp_readwise.client import client
 from mcp_readwise.models.highlights import (
+    DeletionResult,
     HighlightListResult,
     HighlightResult,
 )
@@ -231,10 +232,11 @@ async def update_highlight(
     return await get_highlight(highlight_id)
 
 
-async def delete_highlight(highlight_id: int) -> dict:
+async def delete_highlight(highlight_id: int) -> DeletionResult:
     """Delete a highlight by ID.
 
-    Returns a confirmation with the deleted highlight's ID.
+    Returns a confirmation with the deleted highlight's ID. This is
+    irreversible — the highlight cannot be recovered through this API.
     """
     await client.delete(f"/api/v2/highlights/{highlight_id}")
-    return {"deleted": True, "id": highlight_id}
+    return DeletionResult(deleted=True, id=highlight_id)

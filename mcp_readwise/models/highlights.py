@@ -38,6 +38,18 @@ class HighlightListResult(BaseModel):
     next_page: Optional[int] = None
 
 
+class DeletionResult(BaseModel):
+    """Uniform confirmation for irreversible delete tools.
+
+    `deleted` is always True on success (the underlying API raises on
+    failure before this is constructed); `id` echoes the removed entity's
+    identifier so the caller can confirm which record was destroyed.
+    """
+
+    deleted: bool = True
+    id: int
+
+
 class ExportResult(BaseModel):
     results: list[dict]
     next_cursor: Optional[str] = None
