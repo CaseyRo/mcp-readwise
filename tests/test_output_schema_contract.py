@@ -201,8 +201,26 @@ class TestTopLevelFieldsPreserved:
         tools = _list_tools()
         for name in WRAPPED_RESULT_TOOLS:
             schema = tools[name].output_schema
+            # Success wire shape is unchanged: still wrapped, ``result`` present.
             assert schema.get("x-fastmcp-wrap-result") is True, name
-            assert set((schema.get("properties") or {}).keys()) == {"result"}, name
+            props = set((schema.get("properties") or {}).keys())
+            assert "result" in props, name
+            # The ONLY additive top-level property allowed is the ``error`` guard.
+            assert props - {"result"} <= {"error"}, name
+
+    def test_wrapped_tools_are_error_path_safe(self):
+        # The mcp-zernio bug class: a wrapped-result tool whose schema requires
+        # ``result`` rejects a top-level {"error": ...} payload. After the fix,
+        # ``result`` must NOT be required and extra keys must be tolerated, so an
+        # error payload validates against the published schema.
+        jsonschema = pytest.importorskip("jsonschema")
+        tools = _list_tools()
+        for name in WRAPPED_RESULT_TOOLS:
+            schema = tools[name].output_schema
+            assert "result" not in set(schema.get("required") or []), name
+            validator = jsonschema.Draft7Validator(schema)
+            errors = list(validator.iter_errors({"error": "boom"}))
+            assert not errors, f"{name} rejects error payload: {errors}"
 
 
 # --- Success payloads still validate (no false positives) -----------------
