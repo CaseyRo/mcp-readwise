@@ -4,14 +4,19 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class HighlightResult(BaseModel):
-    id: int
+    # extra="allow" + optional error keep BOTH the success payload and any
+    # future error-shaped payload valid against the published output_schema
+    # (mcp-zernio regression guard — strict clients/portal must not reject).
+    model_config = ConfigDict(extra="allow")
+
+    id: int = 0
     text: str = ""
     note: str = ""
-    tags: list[str] = []
+    tags: list[str] = Field(default_factory=list)
     book_id: int = 0
     book_title: str = ""
     book_author: str = ""
@@ -22,6 +27,7 @@ class HighlightResult(BaseModel):
     # First-class booleans (separate from tags per Readwise v2 docs)
     is_favorite: bool = False
     is_discard: bool = False
+    error: Optional[str] = None
 
     @field_validator("*", mode="before")
     @classmethod
@@ -33,14 +39,35 @@ class HighlightResult(BaseModel):
 
 
 class HighlightListResult(BaseModel):
-    results: list[HighlightResult]
-    total: int
+    model_config = ConfigDict(extra="allow")
+
+    results: list[HighlightResult] = Field(default_factory=list)
+    total: int = 0
     next_page: Optional[int] = None
+    error: Optional[str] = None
+
+
+class DeletionResult(BaseModel):
+    """Uniform confirmation for irreversible delete tools.
+
+    `deleted` is always True on success (the underlying API raises on
+    failure before this is constructed); `id` echoes the removed entity's
+    identifier so the caller can confirm which record was destroyed.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    deleted: bool = True
+    id: int = 0
+    error: Optional[str] = None
 
 
 class ExportResult(BaseModel):
-    results: list[dict]
+    model_config = ConfigDict(extra="allow")
+
+    results: list[dict] = Field(default_factory=list)
     next_cursor: Optional[str] = None
+    error: Optional[str] = None
 
     @field_validator("next_cursor", mode="before")
     @classmethod
