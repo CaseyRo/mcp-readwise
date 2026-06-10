@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class BookResult(BaseModel):
-    id: int
+    model_config = ConfigDict(extra="allow")
+
+    id: int = 0
     title: str = ""
     author: str = ""
     category: str = ""
@@ -18,6 +20,7 @@ class BookResult(BaseModel):
     source_url: str = ""
     created_at: str = ""
     updated_at: str = ""
+    error: Optional[str] = None
 
     @field_validator("*", mode="before")
     @classmethod
@@ -29,6 +32,9 @@ class BookResult(BaseModel):
 
 
 class BookListResult(BaseModel):
-    results: list[BookResult]
-    total: int
+    model_config = ConfigDict(extra="allow")
+
+    results: list[BookResult] = Field(default_factory=list)
+    total: int = 0
     next_page: Optional[int] = None
+    error: Optional[str] = None

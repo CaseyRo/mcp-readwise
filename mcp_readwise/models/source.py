@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 BaseLayer = Literal[
@@ -30,12 +30,14 @@ class EngagementScore(BaseModel):
     `evergreen_top` ranks by `intensity` (recency removed).
     """
 
+    model_config = ConfigDict(extra="allow")
+
     raw: float = 0.0
     intensity: float = 0.0
     recency: float = 0.0
     return_strength: float = 0.0
     base_layer: BaseLayer = "saved_cold"
-    flags: list[str] = []
+    flags: list[str] = Field(default_factory=list)
 
     @field_validator("*", mode="before")
     @classmethod
@@ -53,6 +55,8 @@ class Source(BaseModel):
     indicates a v2-only source (pre-Reader-era Kindle/iBooks/etc imports or
     Reader-era ingestions from non-Reader sources).
     """
+
+    model_config = ConfigDict(extra="allow")
 
     # Identifiers — at least one populated
     book_id: Optional[int] = None
@@ -83,9 +87,10 @@ class Source(BaseModel):
     has_favorite: bool = False
 
     # Engagement
-    engagement: EngagementScore = EngagementScore()
+    engagement: EngagementScore = Field(default_factory=EngagementScore)
     is_legacy: bool = False
     legacy_recency: Optional[Literal["cold", "warm"]] = None
+    error: Optional[str] = None
 
     @field_validator("*", mode="before")
     @classmethod

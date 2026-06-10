@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from mcp_readwise.models.reader import ReaderDocument
 
@@ -19,15 +19,20 @@ class EpubSendResult(BaseModel):
     not include "transcript logs leak."
     """
 
-    success: bool
-    accepted_at: str
-    recipient: str
-    message_id: str
-    file_size_bytes: int
-    title: str
-    location: str
-    identifier_scheme: str
-    note: str
+    # extra="allow" + optional error keep BOTH the success and any error-shaped
+    # payload valid against the published output_schema (mcp-zernio guard).
+    model_config = ConfigDict(extra="allow")
+
+    success: bool = False
+    accepted_at: str = ""
+    recipient: str = ""
+    message_id: str = ""
+    file_size_bytes: int = 0
+    title: str = ""
+    location: str = ""
+    identifier_scheme: str = ""
+    note: str = ""
+    error: Optional[str] = None
 
 
 class VerifyResult(BaseModel):
@@ -38,6 +43,9 @@ class VerifyResult(BaseModel):
     retry or surface a failure to the human.
     """
 
-    found: bool
+    model_config = ConfigDict(extra="allow")
+
+    found: bool = False
     document: Optional[ReaderDocument] = None
-    note: str
+    note: str = ""
+    error: Optional[str] = None

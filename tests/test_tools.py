@@ -114,7 +114,8 @@ class TestHighlightCRUD:
 
             result = await delete_highlight(highlight_id=1001)
 
-        assert result == {"deleted": True, "id": 1001}
+        assert result.deleted is True
+        assert result.id == 1001
 
 
 # --- Book tools ---
@@ -203,7 +204,8 @@ class TestTagTools:
 
             result = await delete_tag(tag_id=10)
 
-        assert result == {"deleted": True, "id": 10}
+        assert result.deleted is True
+        assert result.id == 10
 
     @pytest.mark.asyncio
     async def test_tag_highlight_add(self):

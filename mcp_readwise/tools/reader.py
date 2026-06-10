@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from typing import Annotated, Literal, Optional
 
+from fastmcp import Context
 from pydantic import AnyHttpUrl, Field
 
 from mcp_readwise.client import client
@@ -333,6 +334,7 @@ async def reader_get_by_url(
     location: Optional[
         Literal["new", "later", "shortlist", "archive", "feed"]
     ] = None,
+    ctx: Context | None = None,
 ) -> Optional[ReaderDocument]:
     """Find a single Reader document by its source URL.
 
@@ -351,12 +353,17 @@ async def reader_get_by_url(
     target = _canonicalize_url(str(url))
 
     cursor: Optional[str] = None
-    for _ in range(_GET_BY_URL_MAX_PAGES):
+    for page_num in range(_GET_BY_URL_MAX_PAGES):
         params: dict = {"limit": _GET_BY_URL_PAGE_SIZE}
         if location:
             params["location"] = location
         if cursor:
             params["pageCursor"] = cursor
+
+        if ctx is not None:
+            await ctx.report_progress(
+                progress=page_num, total=_GET_BY_URL_MAX_PAGES
+            )
 
         data = await client.get("/api/v3/list/", **params)
         for item in data.get("results", []) or []:
@@ -368,10 +375,14 @@ async def reader_get_by_url(
             if not candidate:
                 continue
             if _canonicalize_url(candidate) == target:
+                if ctx is not None:
+                    await ctx.info(f"Matched on page {page_num + 1}")
                 return _item_to_document(item)
 
         cursor = data.get("nextPageCursor")
         if not cursor:
             break
 
+    if ctx is not None:
+        await ctx.info("No matching document found in the scanned pages.")
     return None

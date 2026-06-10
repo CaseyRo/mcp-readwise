@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Literal
 
 from mcp_readwise.client import client
+from mcp_readwise.models.highlights import DeletionResult
 from mcp_readwise.models.tags import TagResult
 
 
@@ -31,13 +32,14 @@ async def create_tag(name: str) -> TagResult:
     return TagResult(id=data.get("id", 0), name=data.get("name", name))
 
 
-async def delete_tag(tag_id: int) -> dict:
+async def delete_tag(tag_id: int) -> DeletionResult:
     """Delete a tag by ID.
 
-    Returns a confirmation with the deleted tag's ID.
+    Returns a confirmation with the deleted tag's ID. This is irreversible —
+    the tag is removed from every highlight it was applied to.
     """
     await client.delete(f"/api/v2/tags/{tag_id}")
-    return {"deleted": True, "id": tag_id}
+    return DeletionResult(deleted=True, id=tag_id)
 
 
 async def tag_highlight(
