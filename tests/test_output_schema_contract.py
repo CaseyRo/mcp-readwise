@@ -143,7 +143,7 @@ EXPECTED_TOP_LEVEL = {
         "last_opened_at", "last_moved_at", "reading_status",
     },
     "save_markdown_as_epub": {
-        "success", "accepted_at", "recipient", "message_id",
+        "success", "delivery_status", "accepted_at", "recipient", "message_id",
         "file_size_bytes", "title", "location", "identifier_scheme", "note",
     },
     "verify_epub_received": {"found", "document", "note"},

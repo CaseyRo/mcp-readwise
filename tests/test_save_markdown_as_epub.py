@@ -228,6 +228,22 @@ class TestAsyncContractNote:
         assert "minutes" in result.note.lower()
         assert "verify_epub_received" in result.note
 
+    @pytest.mark.asyncio
+    async def test_note_does_not_claim_ingest(self, configured, stub_pipeline):
+        # CDI-1311: the note must make clear SMTP acceptance != Reader ingest.
+        result = await save_markdown_as_epub(markdown="# T")
+        assert "not" in result.note.lower()  # "... NOT confirmation it ingested"
+
+
+class TestDeliveryStatus:
+    @pytest.mark.asyncio
+    async def test_delivery_status_is_smtp_accepted(self, configured, stub_pipeline):
+        # success reflects SMTP delivery ACCEPTANCE, surfaced explicitly so a
+        # caller never reads success=True as "ingested into Reader" (CDI-1311).
+        result = await save_markdown_as_epub(markdown="# T")
+        assert result.success is True
+        assert result.delivery_status == "smtp_accepted"
+
 
 class TestCoverImage:
     @pytest.mark.asyncio

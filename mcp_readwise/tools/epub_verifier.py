@@ -57,11 +57,27 @@ async def verify_epub_received(
     `fuzzy=True` (default) matches case-insensitive contains. Set
     `fuzzy=False` for exact (case-insensitive) title equality.
     """
-    docs = await list_documents(
-        category="epub",
-        updated_after=since,
-        limit=50,
-    )
+    # Every return path MUST yield a well-formed VerifyResult. A bare
+    # exception escaping here let an empty/None result reach the client as a
+    # malformed MCP response (-32602, missing `content`) — intermittent
+    # because it only fired when the live Reader lookup hiccuped (CDI-1311
+    # Defect 3). Wrap the lookup and return a structured error instead.
+    try:
+        docs = await list_documents(
+            category="epub",
+            updated_after=since,
+            limit=50,
+        )
+    except Exception as exc:  # noqa: BLE001 — must always return a valid result
+        return VerifyResult(
+            found=False,
+            document=None,
+            note=(
+                "Could not reach Readwise to check ingest yet — this is "
+                "usually transient. Retry verify_epub_received shortly."
+            ),
+            error=f"reader_lookup_failed: {type(exc).__name__}",
+        )
 
     for doc in docs.results:
         if _match(doc.title, title, fuzzy):

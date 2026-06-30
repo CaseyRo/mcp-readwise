@@ -25,8 +25,10 @@ class ConfigurationError(RuntimeError):
 
 
 _ASYNC_NOTE = (
-    "Sent. Document appears in Readwise Reader within 1–5 minutes. "
-    "Use verify_epub_received to confirm."
+    "Sent. The SMTP relay accepted the message for delivery — this is NOT "
+    "confirmation it ingested into Readwise Reader. The document usually "
+    "appears within 1–5 minutes; call verify_epub_received to confirm before "
+    "telling the human it is available."
 )
 
 
@@ -156,8 +158,13 @@ async def save_markdown_as_epub(
             "call verify_epub_received before reporting the document as available."
         )
 
+    # send_epub raises on hard failure (auth, 5xx, refused recipient, retry
+    # budget exhausted), so reaching here means the relay accepted the message.
+    # That is delivery ACCEPTANCE, not Reader ingest — surface it as such
+    # rather than a bare success=True that overclaims ingest (CDI-1311).
     return EpubSendResult(
         success=True,
+        delivery_status="smtp_accepted",
         accepted_at=send_result.accepted_at,
         recipient=settings.readwise_library_email,
         message_id=send_result.message_id,

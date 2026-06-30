@@ -14,6 +14,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from email.message import EmailMessage
+from email.utils import make_msgid
 
 import aiosmtplib
 
@@ -49,6 +50,11 @@ def _build_message(
     msg["From"] = from_addr
     msg["To"] = to_addr
     msg["Subject"] = subject
+    # Assign a real, deliberate Message-ID so the id we report back is the
+    # actual header on the wire (searchable in the Resend dashboard), not a
+    # locally-fabricated UUID that masquerades as a provider id (CDI-1311).
+    domain = from_addr.rsplit("@", 1)[-1] if "@" in from_addr else None
+    msg["Message-ID"] = make_msgid(domain=domain)
     msg.set_content(body_text)
     msg.add_attachment(
         epub_bytes,
@@ -97,6 +103,16 @@ async def send_epub(
                 username="resend",
                 password=password,
             )
+            # `aiosmtplib.send` returns a per-recipient `errors` dict for
+            # recipients the relay refused without raising (partial failures).
+            # The library email is our only recipient, so a non-empty dict
+            # means the message was NOT accepted for delivery — surfacing
+            # `success` on that would be a false positive (CDI-1311 Defect 1).
+            if errors:
+                refused = ", ".join(sorted(errors)) or "unknown recipient(s)"
+                raise SmtpDeliveryError(
+                    f"SMTP relay refused delivery to: {refused}"
+                )
             message_id = msg.get("Message-ID", "") or str(uuid.uuid4())
             return SendResult(
                 message_id=message_id.strip("<>"),
