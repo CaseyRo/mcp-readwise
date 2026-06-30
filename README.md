@@ -2,7 +2,7 @@
 
 MCP server for [Readwise](https://readwise.io) and Readwise Reader, built on [FastMCP](https://github.com/prefecthq/fastmcp). Engagement-aware reads, the usual write tools, and one thing you can't easily do anywhere else: **turn a markdown blob into a real, brand-styled EPUB and have it land in your Reader Library a minute later.**
 
-14 tools. Python 3.12. Deployed via Docker.
+16 tools. Python 3.12. Deployed via Docker.
 
 ## Why this exists
 
@@ -30,7 +30,7 @@ The tool returns immediately after SMTP delivery — the ingest is async by natu
 
 ### Setup
 
-Three environment variables, all required (the server still boots without them — only the EPUB tools refuse to run; the other 12 work normally):
+Three environment variables, all required (the server still boots without them — only `save_markdown_as_epub` refuses to run; every other tool, including `verify_epub_received`, works normally):
 
 ```bash
 # Your custom Readwise Library email
@@ -112,7 +112,7 @@ all render properly through the `extra` + `sane_lists` + `smarty` extensions.
 - Pandoc binary in the Docker image: ~150 MB. Accepted cost.
 - Inline images in markdown must use absolute HTTPS URLs — pandoc fetches them at build time; relative paths don't resolve.
 
-## The other 12 tools
+## The other 14 tools
 
 ### Read (engagement-aware)
 
@@ -122,6 +122,15 @@ These two collapsed an earlier 7-tool read surface into intent-shaped calls. The
 |------|-------------|
 | `reading_status` | Single-call snapshot — recent activity, evergreen top, current attention, junk drawer, signal density. Accepts `window_days` (default 7) and `week_offset` (default 0). |
 | `writing_material` | Bundle highlights for drafting. Source-first (`book_id` / `document_id` / `title_search`) or topic-first (`topic`). Filters by `min_engagement` floor (default 0.7). |
+
+### Read (direct Reader lookup)
+
+These bypass the engagement cache to browse or look up the full Reader library (e.g. archived docs the cache doesn't surface).
+
+| Tool | Description |
+|------|-------------|
+| `reader_list_documents` | Cursor-paginated list of Reader documents, filterable by `location` / `category` / `updated_after`. |
+| `reader_get_by_url` | Look up a single Reader document by its source URL. |
 
 ### Write
 
@@ -204,9 +213,9 @@ Returns build identifier, git commit, uptime, registered tool count, engagement 
 ```json
 {
   "status": "healthy",
-  "version": "0.6.0",
-  "build": "0.6.0+6ec5b6b",
-  "tools": 14,
+  "version": "0.7.0",
+  "build": "0.7.0+6ec5b6b",
+  "tools": 16,
   "engagement_index": { "built": true, "source_count": 152, "age_seconds": 312 },
   "epub_sender": {
     "configured": true,
