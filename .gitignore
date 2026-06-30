@@ -27,3 +27,6 @@ coverage/
 
 # Logs
 *.log
+
+# Agent working memory — never commit (leaks infra/creds)
+.claude/agent-memory/
