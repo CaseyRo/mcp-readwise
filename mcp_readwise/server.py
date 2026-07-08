@@ -306,11 +306,13 @@ async def health_check(request: Request) -> JSONResponse:
 def main() -> None:
     """Entry point for the mcp-readwise server."""
     if settings.transport == "http":
+        # fastmcp >=3.4.3 rejects non-localhost Host with 421 unless allowed_hosts set (edge CF-Access/Tailscale gated).
         mcp.run(
             transport="streamable-http",
             host=settings.host,
             port=settings.port,
             stateless_http=True,
+            allowed_hosts=["*"],
         )
     else:
         mcp.run()
