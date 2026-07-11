@@ -8,14 +8,18 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends pandoc \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml README.md ./
+COPY pyproject.toml uv.lock README.md ./
 COPY mcp_readwise/ ./mcp_readwise/
 
 # Bake git commit into the image
 ARG GIT_COMMIT=unknown
 RUN echo "${GIT_COMMIT}" > /app/.git_commit
 
-RUN pip install --no-cache-dir . \
+RUN pip install --no-cache-dir uv \
+    && uv export --frozen --no-dev --no-emit-project -o /tmp/requirements.txt \
+    && pip install --no-cache-dir --require-hashes -r /tmp/requirements.txt \
+    && pip install --no-cache-dir --no-deps . \
+    && rm /tmp/requirements.txt \
     && addgroup --system mcp && adduser --system --ingroup mcp mcp
 
 USER mcp
