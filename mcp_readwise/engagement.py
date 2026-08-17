@@ -311,21 +311,31 @@ async def _paginate_export() -> list[dict[str, Any]]:
     return all_books
 
 
+# Library locations only — `feed` (RSS) is deliberately excluded. An
+# unfiltered /api/v3/list/ returns every feed item too (observed 15k+ docs →
+# ~156 pages at the Reader API's 20 req/min limit → ~7-minute cold builds
+# that time out every reading_status call at the gateway). Feed items are
+# not part of the user's library; highlighted feed items still surface via
+# the v2 export on the legacy track.
+_INDEX_LOCATIONS: tuple[str, ...] = ("new", "later", "shortlist", "archive")
+
+
 async def _paginate_v3_list() -> list[dict[str, Any]]:
-    """Paginate `/api/v3/list/`, returning all Reader documents."""
+    """Paginate `/api/v3/list/` per library location, skipping `feed`."""
     all_docs: list[dict[str, Any]] = []
-    page_cursor: Optional[str] = None
-    while True:
-        params: dict[str, Any] = {"page_size": 100}
-        if page_cursor:
-            params["pageCursor"] = page_cursor
-        data = await client.get("/api/v3/list/", **params)
-        results = data.get("results", []) if data else []
-        all_docs.extend(results)
-        next_cursor = data.get("nextPageCursor") if data else None
-        if not next_cursor:
-            break
-        page_cursor = str(next_cursor)
+    for location in _INDEX_LOCATIONS:
+        page_cursor: Optional[str] = None
+        while True:
+            params: dict[str, Any] = {"page_size": 100, "location": location}
+            if page_cursor:
+                params["pageCursor"] = page_cursor
+            data = await client.get("/api/v3/list/", **params)
+            results = data.get("results", []) if data else []
+            all_docs.extend(results)
+            next_cursor = data.get("nextPageCursor") if data else None
+            if not next_cursor:
+                break
+            page_cursor = str(next_cursor)
     return all_docs
 
 

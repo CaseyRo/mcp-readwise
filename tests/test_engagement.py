@@ -502,7 +502,9 @@ class TestBuildIndex:
             if path == "/api/v2/export/":
                 return next(export_iter)
             if path == "/api/v3/list/":
-                return next(v3_iter)
+                if params.get("location") == "new":
+                    return next(v3_iter)
+                return {"results": [], "nextPageCursor": None}
             return {}
 
         with patch.object(engagement.client, "get", new=AsyncMock(side_effect=fake_get)):
@@ -548,16 +550,13 @@ class TestBuildIndex:
                 "nextPageCursor": None,
             }
         ]
-        v3_pages = [{"results": [], "nextPageCursor": None}]
-
         export_iter = iter(export_pages)
-        v3_iter = iter(v3_pages)
 
         async def fake_get(path, **params):
             if path == "/api/v2/export/":
                 return next(export_iter)
             if path == "/api/v3/list/":
-                return next(v3_iter)
+                return {"results": [], "nextPageCursor": None}
             return {}
 
         with patch.object(engagement.client, "get", new=AsyncMock(side_effect=fake_get)):
@@ -596,7 +595,9 @@ class TestBuildIndex:
             if path == "/api/v2/export/":
                 return next(export_iter)
             if path == "/api/v3/list/":
-                return next(v3_iter)
+                if params.get("location") == "later":
+                    return next(v3_iter)
+                return {"results": [], "nextPageCursor": None}
             return {}
 
         with patch.object(engagement.client, "get", new=AsyncMock(side_effect=fake_get)):
@@ -607,6 +608,31 @@ class TestBuildIndex:
         assert s.book_id is None
         assert s.engagement.base_layer == "saved_warm"
         assert s.engagement.raw == pytest.approx(0.15)
+
+    @pytest.mark.asyncio
+    async def test_v3_list_never_requests_feed(self, reset_engagement_cache):
+        """The index paginator queries per library location and skips `feed`.
+
+        Regression: an unfiltered /api/v3/list/ pulled 15k+ feed items,
+        making cold builds take ~7 minutes at the 20 req/min rate limit and
+        timing out every reading_status call upstream.
+        """
+        requested_locations: list = []
+
+        async def fake_get(path, **params):
+            if path == "/api/v2/export/":
+                return {"results": [], "nextPageCursor": None}
+            if path == "/api/v3/list/":
+                requested_locations.append(params.get("location"))
+                return {"results": [], "nextPageCursor": None}
+            return {}
+
+        with patch.object(engagement.client, "get", new=AsyncMock(side_effect=fake_get)):
+            await engagement.build_index()
+
+        assert requested_locations == ["new", "later", "shortlist", "archive"]
+        assert "feed" not in requested_locations
+        assert None not in requested_locations  # never an unfiltered list call
 
 
 # ============= TTL caching =============
