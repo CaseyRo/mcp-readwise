@@ -1,25 +1,31 @@
 [[server]]
-name = "ubuntu-smurf-mirror"
+name = "ubuntu-smurf-mini"
 [server.config]
-address = "http://100.118.241.89:8120"
+# Periphery dials Komodo Core inbound; this server has no dialable address.
+address = ""
 enabled = true
 
 [[stack]]
-name = "git-mcp-readwise"
+name = "git-mcp-readwise-mini"
 description = "MCP server for Readwise (FastMCP 3.x)"
 deploy = true
-tags = ["mcp"]
+tags = ["cdit"]
 
 [stack.config]
-server_id = "ubuntu-smurf-mirror"
+server_id = "ubuntu-smurf-mini"
 git_provider = "github.com"
 git_account = "caseyro"
 repo = "CaseyRo/mcp-readwise"
 branch = "main"
 webhook_enabled = true
+webhook_force_deploy = true
 auto_pull = true
 run_build = true
 file_paths = ["compose.yaml"]
+# Bakes the deployed short sha into .env so /health can report git_commit.
+pre_deploy.command = """
+echo "GIT_COMMIT=$(git rev-parse --short HEAD)" >> /etc/komodo/stacks/git-mcp-readwise-mini/.env
+"""
 environment = """
 READWISE_TOKEN = [[READWISE_TOKEN]]
 MCP_API_KEY = [[MCP_READWISE_API_KEY]]

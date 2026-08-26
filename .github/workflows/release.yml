@@ -60,7 +60,7 @@ jobs:
           git tag "v${NEW}"
           echo "version=${NEW}" >> "$GITHUB_OUTPUT"
 
-      # Deploy happens off the push below: the Komodo stack `git-mcp-readwise`
+      # Deploy happens off the push below: the Komodo stack `git-mcp-readwise-mini`
       # has webhook_enabled + auto_pull + run_build, and compose.yaml builds
       # from source (no GHCR image). So there is no image-push/webhook race to
       # sequence around — do NOT copy mcp-timely/mcp-klartext's GHCR build-push
