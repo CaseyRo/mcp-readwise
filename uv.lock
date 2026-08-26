@@ -688,7 +688,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiosmtplib", specifier = ">=3.0" },
-    { name = "authlib", specifier = ">=1.6.11" },
+    { name = "authlib", specifier = ">=1.7.0" },
     { name = "fastmcp", specifier = ">=3.4.3,<4.0.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "markdown", specifier = ">=3.7" },

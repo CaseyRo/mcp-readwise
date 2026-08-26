@@ -15,7 +15,7 @@ dependencies = [
     "pypandoc>=1.13",
     "aiosmtplib>=3.0",
     # Security floors (transitives of fastmcp; pinned to address CVEs)
-    "authlib>=1.6.11",            # GHSA: CSRF when using cache
+    "authlib>=1.7.0",             # GHSA: CSRF in token cache handling
     "python-multipart>=0.0.27",   # GHSA: DoS via unbounded multipart headers
 ]
 
