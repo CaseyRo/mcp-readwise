@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '*.md'
+      - 'tests/**'
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Install and test
+        run: |
+          uv sync
+          uv run pytest -x
+
+      - name: Security audit (pip-audit)
+        run: uvx pip-audit
+
+      - name: Bump version
+        id: version
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          CURRENT=$(grep '^version = ' pyproject.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          NEW="$MAJOR.$MINOR.$((PATCH + 1))"
+
+          sed -i "s/^version = \"$CURRENT\"/version = \"$NEW\"/" pyproject.toml
+
+          DATE=$(date +%Y-%m-%d)
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)
+          COMMITS=$(git log "$LAST_TAG"..HEAD --oneline --no-merges | sed 's/^[a-f0-9]* /- /')
+          ENTRY="## [$NEW] - $DATE\n\n$COMMITS\n"
+          sed -i "/^# Changelog/a\\\\n${ENTRY}" CHANGELOG.md 2>/dev/null || true
+
+          git add pyproject.toml CHANGELOG.md
+          git commit -m "chore(release): v${NEW} [skip ci]"
+          git tag "v${NEW}"
+          echo "version=${NEW}" >> "$GITHUB_OUTPUT"
+
+      # Deploy happens off the push below: the Komodo stack `git-mcp-readwise`
+      # has webhook_enabled + auto_pull + run_build, and compose.yaml builds
+      # from source (no GHCR image). So there is no image-push/webhook race to
+      # sequence around — do NOT copy mcp-timely/mcp-klartext's GHCR build-push
+      # + explicit "Trigger Komodo deploy" steps here; those exist only because
+      # those stacks pull ghcr.io/...:latest.
+      - name: Push
+        run: |
+          git push origin main
+          git push origin --tags
