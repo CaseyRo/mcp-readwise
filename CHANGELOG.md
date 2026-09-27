@@ -1,5 +1,7 @@
 # Changelog
 
+Versions are git tags (`vX.Y.Z`) from now on; this file is no longer updated per release.
+
 ## [0.7.3] - 2026-09-27
 
 - ci: add PR test workflow and MCP protocol tests (phase 0 safety net) (#43)

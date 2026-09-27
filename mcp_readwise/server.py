@@ -13,6 +13,7 @@ from fastmcp import FastMCP
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
+from mcp_readwise.usage import UsageMiddleware
 from mcp_readwise import __version__
 from mcp_readwise.auth import BearerTokenVerifier
 from mcp_readwise.config import settings
@@ -152,6 +153,7 @@ mcp = FastMCP(
     auth=_auth,
     lifespan=_lifespan,
 )
+mcp.add_middleware(UsageMiddleware("readwise"))
 
 # All tools touch the live Readwise API → openWorldHint=True everywhere.
 _OPEN = {"openWorldHint": True}

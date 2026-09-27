@@ -14,7 +14,6 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     permissions:
       contents: write
     steps:
@@ -37,36 +36,21 @@ jobs:
       - name: Security audit (pip-audit)
         run: uvx pip-audit
 
-      - name: Bump version
+      # Tag-only release: nothing is committed or pushed to the branch (protected
+      # branches reject it). The version is the git tag; pyproject stays static.
+      - name: Tag release
         id: version
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          LAST=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "v$(grep '^version = ' pyproject.toml | head -1 | sed 's/version = "\(.*\)"/\1/')")
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${LAST#v}"
+          NEXT="$MAJOR.$MINOR.$((PATCH + 1))"
+          git tag "v${NEXT}"
+          git push origin "v${NEXT}"
+          echo "version=${NEXT}" >> "$GITHUB_OUTPUT"
 
-          CURRENT=$(grep '^version = ' pyproject.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-          NEW="$MAJOR.$MINOR.$((PATCH + 1))"
-
-          sed -i "s/^version = \"$CURRENT\"/version = \"$NEW\"/" pyproject.toml
-
-          DATE=$(date +%Y-%m-%d)
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)
-          COMMITS=$(git log "$LAST_TAG"..HEAD --oneline --no-merges | sed 's/^[a-f0-9]* /- /')
-          ENTRY="## [$NEW] - $DATE\n\n$COMMITS\n"
-          sed -i "/^# Changelog/a\\\\n${ENTRY}" CHANGELOG.md 2>/dev/null || true
-
-          git add pyproject.toml CHANGELOG.md
-          git commit -m "chore(release): v${NEW} [skip ci]"
-          git tag "v${NEW}"
-          echo "version=${NEW}" >> "$GITHUB_OUTPUT"
-
-      # Deploy happens off the push below: the Komodo stack `git-mcp-readwise-mini`
-      # has webhook_enabled + auto_pull + run_build, and compose.yaml builds
-      # from source (no GHCR image). So there is no image-push/webhook race to
-      # sequence around — do NOT copy mcp-timely/mcp-klartext's GHCR build-push
-      # + explicit "Trigger Komodo deploy" steps here; those exist only because
-      # those stacks pull ghcr.io/...:latest.
-      - name: Push
-        run: |
-          git push origin main
-          git push origin --tags
+      # Deploy happens off the push to main itself (the merge), not this tag:
+      # the Komodo stack `git-mcp-readwise-mini` has webhook_enabled + auto_pull
+      # + run_build, and compose.yaml builds from source (no GHCR image). Do NOT
+      # copy mcp-timely/mcp-klartext's GHCR build-push + explicit "Trigger
+      # Komodo deploy" steps here; those exist only because those stacks pull
+      # ghcr.io/...:latest.

@@ -67,3 +67,14 @@ async def test_a_read_only_tool_call_round_trips():
     upstream.get.assert_awaited_once_with("/api/v2/tags/")
     [tag] = result.structured_content["result"]
     assert (tag["id"], tag["name"]) == (10, "identity")
+
+
+@pytest.mark.asyncio
+async def test_a_tool_call_writes_one_usage_line(capsys):
+    with patch("mcp_readwise.tools.tags.client") as upstream:
+        upstream.get = AsyncMock(return_value={"results": []})
+        async with Client(mcp) as client:
+            await client.call_tool("list_tags", {})
+    lines = [ln for ln in capsys.readouterr().err.splitlines() if '"mcp_usage"' in ln]
+    assert len(lines) == 1
+    assert all(s in lines[0] for s in ('"readwise"', '"list_tags"', '"outcome": "ok"'))
