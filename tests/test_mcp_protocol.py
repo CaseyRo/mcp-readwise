@@ -49,9 +49,9 @@ async def test_read_only_tools_are_annotated_over_the_wire():
         tools = {t.name: t for t in await client.list_tools()}
     ann = tools["list_tags"].annotations
     assert ann is not None
-    assert ann.readOnlyHint is True
-    assert ann.openWorldHint is True
-    assert tools["delete_tag"].annotations.destructiveHint is True
+    assert ann.read_only_hint is True
+    assert ann.open_world_hint is True
+    assert tools["delete_tag"].annotations.destructive_hint is True
 
 
 @pytest.mark.asyncio

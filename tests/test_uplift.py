@@ -48,14 +48,10 @@ class TestDeletionResult:
 
 
 class _SpyContext:
-    """Minimal stand-in for fastmcp Context that records calls."""
+    """Minimal stand-in for fastmcp Context that records progress."""
 
     def __init__(self):
-        self.infos: list[str] = []
         self.progress: list[tuple] = []
-
-    async def info(self, message):
-        self.infos.append(message)
 
     async def report_progress(self, progress, total=None):
         self.progress.append((progress, total))
@@ -94,9 +90,8 @@ class TestContextThreading:
         result = await save_markdown_as_epub(markdown="# T", ctx=ctx)
 
         assert result.success is True
-        # Progress went 0 -> 1 -> 3 of 3, and at least one info was emitted
+        # Progress went 0 -> 1 -> 3 of 3
         assert (3, 3) in ctx.progress
-        assert ctx.infos
 
     @pytest.mark.asyncio
     async def test_reader_get_by_url_reports_progress(self):
@@ -119,7 +114,6 @@ class TestContextThreading:
         assert result is not None
         assert result.id == "match"
         assert ctx.progress  # at least the first page progress
-        assert any("page" in m.lower() for m in ctx.infos)
 
 
 # --- Server wiring: instructions, annotations, resources, prompts ---------
@@ -142,7 +136,7 @@ class TestServerWiring:
         assert len(tools) == 16
         for t in tools:
             assert t.annotations is not None, t.name
-            assert t.annotations.openWorldHint is True, t.name
+            assert t.annotations.open_world_hint is True, t.name
             assert t.title, t.name
 
     @pytest.mark.asyncio
@@ -151,7 +145,7 @@ class TestServerWiring:
 
         tools = {t.name: t for t in await mcp._list_tools()}
         for name in ("delete_highlight", "delete_tag"):
-            assert tools[name].annotations.destructiveHint is True, name
+            assert tools[name].annotations.destructive_hint is True, name
 
     @pytest.mark.asyncio
     async def test_read_tools_flagged_readonly(self):
@@ -166,7 +160,7 @@ class TestServerWiring:
             "reader_list_documents",
             "reader_get_by_url",
         ):
-            assert tools[name].annotations.readOnlyHint is True, name
+            assert tools[name].annotations.read_only_hint is True, name
 
     @pytest.mark.asyncio
     async def test_resources_registered(self):

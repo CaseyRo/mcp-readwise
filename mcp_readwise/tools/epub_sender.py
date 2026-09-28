@@ -122,7 +122,6 @@ async def save_markdown_as_epub(
     }
 
     if ctx is not None:
-        await ctx.info(f"Rendering EPUB: {resolved_title!r}")
         await ctx.report_progress(progress=0, total=3)
 
     cover_path = await _resolve_cover(resolved_cover)
@@ -137,9 +136,6 @@ async def save_markdown_as_epub(
         f"Sent at: {datetime.now(timezone.utc).isoformat()}\n"
     )
     if ctx is not None:
-        await ctx.info(
-            f"Rendered {len(epub_bytes)} bytes; delivering to Readwise Library via SMTP"
-        )
         await ctx.report_progress(progress=1, total=3)
 
     send_result = await send_epub(
@@ -153,10 +149,6 @@ async def save_markdown_as_epub(
 
     if ctx is not None:
         await ctx.report_progress(progress=3, total=3)
-        await ctx.info(
-            "SMTP accepted. Reader ingest is async (1–5 min) — "
-            "call verify_epub_received before reporting the document as available."
-        )
 
     # send_epub raises on hard failure (auth, 5xx, refused recipient, retry
     # budget exhausted), so reaching here means the relay accepted the message.

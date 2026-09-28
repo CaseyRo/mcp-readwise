@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Optional
 
+from fastmcp.exceptions import ToolError
 from pydantic import Field
 
 from mcp_readwise.client import client
@@ -31,12 +32,12 @@ def _validate_args(
     ]
     set_args = [name for name, is_set in provided if is_set]
     if len(set_args) == 0:
-        raise ValueError(
+        raise ToolError(
             "writing_material requires exactly one of: book_id, "
             "document_id, title_search, topic"
         )
     if len(set_args) > 1:
-        raise ValueError(
+        raise ToolError(
             f"writing_material accepts exactly one of book_id, document_id, "
             f"title_search, topic. Got: {', '.join(set_args)}"
         )
@@ -53,7 +54,7 @@ def _resolve_title_search(
     q = query.strip().lower()
     matches = [s for s in sources.values() if q in s.title.lower()]
     if not matches:
-        raise ValueError(
+        raise ToolError(
             f"No source matched title_search={query!r}. "
             "Try a different query or use book_id / document_id."
         )
@@ -62,7 +63,7 @@ def _resolve_title_search(
             f"{m.title!r} (book_id={m.book_id}, document_id={m.document_id})"
             for m in matches[:10]
         )
-        raise ValueError(
+        raise ToolError(
             f"Multiple sources matched title_search={query!r}. "
             f"Disambiguate by ID. Candidates: {candidates}"
         )
@@ -80,7 +81,7 @@ def _resolve_source(
     if book_id is not None:
         s = sources.get(f"book:{book_id}")
         if s is None:
-            raise ValueError(f"No source found for book_id={book_id}")
+            raise ToolError(f"No source found for book_id={book_id}")
         return s
     if document_id:
         s = sources.get(f"doc:{document_id}")
@@ -90,10 +91,10 @@ def _resolve_source(
         for src in sources.values():
             if src.document_id == document_id:
                 return src
-        raise ValueError(f"No source found for document_id={document_id!r}")
+        raise ToolError(f"No source found for document_id={document_id!r}")
     if title_search:
         return _resolve_title_search(title_search, sources)
-    raise ValueError("No identifier provided")
+    raise ToolError("No identifier provided")
 
 
 async def _fetch_highlights_for_book(

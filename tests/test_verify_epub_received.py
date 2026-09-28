@@ -182,39 +182,35 @@ class TestQueryParameters:
         assert captured["limit"] == 50
 
 
-class TestReaderLookupFailureIsStructured:
-    """CDI-1311 Defect 3: a failing Reader lookup must not escape as a raw
-    exception (which surfaced as a malformed -32602 MCP response, missing
-    `content`). Every path returns a well-formed VerifyResult."""
+class TestReaderLookupFailureIsAToolError:
+    """CDI-1311 Defect 3: a failing Reader lookup must reach the client as a
+    well-formed MCP error (isError, text content), not a malformed -32602."""
 
     @pytest.mark.asyncio
-    async def test_lookup_exception_returns_structured_result(self, monkeypatch):
+    async def test_lookup_exception_is_a_terse_tool_error(self, monkeypatch):
+        from fastmcp import Client
+
+        from mcp_readwise.server import mcp
+
         async def boom(**kwargs):
-            raise RuntimeError("upstream 503")
+            raise RuntimeError("upstream 503 secret-detail")
 
         monkeypatch.setattr(
             "mcp_readwise.tools.epub_verifier.list_documents", boom
         )
-        # Must NOT raise — returns a structured, schema-valid VerifyResult.
-        result = await verify_epub_received(title="X", since=_iso_ago(120))
-        assert result.found is False
-        assert result.document is None
-        assert result.error is not None
-        assert "reader_lookup_failed" in result.error
-        # The leaked exception text/type stays terse; no SMTP-panic copy.
-        assert "transient" in result.note.lower()
-
-    @pytest.mark.asyncio
-    async def test_lookup_timeout_does_not_recommend_smtp_check(self, monkeypatch):
-        async def boom(**kwargs):
-            raise TimeoutError()
-
-        monkeypatch.setattr(
-            "mcp_readwise.tools.epub_verifier.list_documents", boom
-        )
-        result = await verify_epub_received(title="X", since=_iso_ago(30))
-        assert result.found is False
-        assert "Resend" not in result.note
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "verify_epub_received",
+                {"title": "X", "since": _iso_ago(120)},
+                raise_on_error=False,
+            )
+        assert result.is_error
+        text = result.content[0].text
+        assert text.startswith("reader_lookup_failed: RuntimeError")
+        assert "transient" in text
+        # Exception text stays out; no SMTP-panic copy.
+        assert "secret-detail" not in text
+        assert "Resend" not in text
 
 
 class TestDoesNotRequireEpubSenderConfig:
