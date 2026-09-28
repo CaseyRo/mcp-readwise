@@ -155,19 +155,19 @@ mcp = FastMCP(
 )
 mcp.add_middleware(UsageMiddleware("readwise"))
 
-# All tools touch the live Readwise API → openWorldHint=True everywhere.
-_OPEN = {"openWorldHint": True}
+# All tools touch the live Readwise API → open_world_hint=True everywhere.
+_OPEN = {"open_world_hint": True}
 
 # Read tools — engagement-aware (the v0.4.0 surface)
 mcp.tool(
     reading_status,
     title="Reading status snapshot",
-    annotations={**_OPEN, "readOnlyHint": True},
+    annotations={**_OPEN, "read_only_hint": True},
 )
 mcp.tool(
     writing_material,
     title="Gather writing material",
-    annotations={**_OPEN, "readOnlyHint": True},
+    annotations={**_OPEN, "read_only_hint": True},
 )
 
 # Highlights — write
@@ -179,12 +179,12 @@ mcp.tool(
 mcp.tool(
     update_highlight,
     title="Update highlight",
-    annotations={**_OPEN, "idempotentHint": True},
+    annotations={**_OPEN, "idempotent_hint": True},
 )
 mcp.tool(
     delete_highlight,
     title="Delete highlight",
-    annotations={**_OPEN, "destructiveHint": True, "idempotentHint": True},
+    annotations={**_OPEN, "destructive_hint": True, "idempotent_hint": True},
 )
 
 # Tags
@@ -196,24 +196,24 @@ register_error_safe_wrapped(
     mcp,
     list_tags,
     title="List tags",
-    annotations={**_OPEN, "readOnlyHint": True},
+    annotations={**_OPEN, "read_only_hint": True},
 )
 mcp.tool(
     create_tag,
     title="Create tag",
-    annotations={**_OPEN, "idempotentHint": True},
+    annotations={**_OPEN, "idempotent_hint": True},
 )
 mcp.tool(
     delete_tag,
     title="Delete tag",
-    annotations={**_OPEN, "destructiveHint": True, "idempotentHint": True},
+    annotations={**_OPEN, "destructive_hint": True, "idempotent_hint": True},
 )
 # `tag_highlight` returns list[str] → same wrapped-result error-path hazard.
 register_error_safe_wrapped(
     mcp,
     tag_highlight,
     title="Add or remove a highlight tag",
-    annotations={**_OPEN, "idempotentHint": True},
+    annotations={**_OPEN, "idempotent_hint": True},
 )
 
 # Reader — write/update tools
@@ -225,29 +225,29 @@ mcp.tool(
 mcp.tool(
     save_markdown,
     title="Save markdown to Reader",
-    annotations={**_OPEN, "idempotentHint": True},
+    annotations={**_OPEN, "idempotent_hint": True},
 )
 mcp.tool(
     save_markdown_as_epub,
     title="Save markdown to Reader as EPUB (async)",
-    annotations={**_OPEN, "idempotentHint": True},
+    annotations={**_OPEN, "idempotent_hint": True},
 )
 mcp.tool(
     verify_epub_received,
     title="Verify EPUB received",
-    annotations={**_OPEN, "readOnlyHint": True},
+    annotations={**_OPEN, "read_only_hint": True},
 )
 mcp.tool(
     update_progress,
     title="Update reading progress",
-    annotations={**_OPEN, "idempotentHint": True},
+    annotations={**_OPEN, "idempotent_hint": True},
 )
 
 # Reader — by-URL / archive lookup beyond the engagement cache (CDI-1147)
 mcp.tool(
     reader_list_documents,
     title="List Reader documents",
-    annotations={**_OPEN, "readOnlyHint": True},
+    annotations={**_OPEN, "read_only_hint": True},
 )
 # `reader_get_by_url` returns Optional[ReaderDocument] → fastmcp wraps it under
 # {"result": ...} with required:["result"], so a top-level {"error": ...} would
@@ -256,7 +256,7 @@ register_error_safe_wrapped(
     mcp,
     reader_get_by_url,
     title="Get Reader document by URL",
-    annotations={**_OPEN, "readOnlyHint": True},
+    annotations={**_OPEN, "read_only_hint": True},
 )
 
 # Reference resources + guided-workflow prompts
@@ -308,13 +308,11 @@ async def health_check(request: Request) -> JSONResponse:
 def main() -> None:
     """Entry point for the mcp-readwise server."""
     if settings.transport == "http":
-        # fastmcp >=3.4.3 rejects non-localhost Host with 421 unless allowed_hosts set (edge CF-Access/Tailscale gated).
         mcp.run(
             transport="streamable-http",
             host=settings.host,
             port=settings.port,
-            stateless_http=True,
-            allowed_hosts=["*"],
+            stateless_http=True,  # fastmcp #5210
         )
     else:
         mcp.run()

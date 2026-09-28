@@ -375,14 +375,10 @@ async def reader_get_by_url(
             if not candidate:
                 continue
             if _canonicalize_url(candidate) == target:
-                if ctx is not None:
-                    await ctx.info(f"Matched on page {page_num + 1}")
                 return _item_to_document(item)
 
         cursor = data.get("nextPageCursor")
         if not cursor:
             break
 
-    if ctx is not None:
-        await ctx.info("No matching document found in the scanned pages.")
     return None

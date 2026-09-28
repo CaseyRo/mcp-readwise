@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from fastmcp.exceptions import ToolError
 
 from mcp_readwise.models.source import EngagementScore, Source
 from mcp_readwise.tools.writing import writing_material
@@ -29,14 +30,14 @@ def _src(**kwargs) -> Source:
 @pytest.mark.asyncio
 async def test_neither_arg_raises():
     with patch("mcp_readwise.tools.writing.get_index", return_value={}):
-        with pytest.raises(ValueError, match="exactly one"):
+        with pytest.raises(ToolError, match="exactly one"):
             await writing_material()
 
 
 @pytest.mark.asyncio
 async def test_multiple_args_raises():
     with patch("mcp_readwise.tools.writing.get_index", return_value={}):
-        with pytest.raises(ValueError, match="exactly one"):
+        with pytest.raises(ToolError, match="exactly one"):
             await writing_material(book_id=1, topic="x")
 
 
@@ -128,7 +129,7 @@ async def test_title_search_ambiguous_raises():
     sources = {"book:1": s1, "book:2": s2}
 
     with patch("mcp_readwise.tools.writing.get_index", return_value=sources):
-        with pytest.raises(ValueError, match="Multiple sources matched"):
+        with pytest.raises(ToolError, match="Multiple sources matched"):
             await writing_material(title_search="AI")
 
 
@@ -138,7 +139,7 @@ async def test_title_search_no_match_raises():
     sources = {"book:1": s1}
 
     with patch("mcp_readwise.tools.writing.get_index", return_value=sources):
-        with pytest.raises(ValueError, match="No source matched"):
+        with pytest.raises(ToolError, match="No source matched"):
             await writing_material(title_search="quantum entanglement")
 
 

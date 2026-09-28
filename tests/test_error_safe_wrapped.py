@@ -93,7 +93,7 @@ class TestRegisterErrorSafeWrapped:
             return ["a", "b"]
 
         register_error_safe_wrapped(
-            mcp, list_things, title="X", annotations={"readOnlyHint": True}
+            mcp, list_things, title="X", annotations={"read_only_hint": True}
         )
 
         async with Client(mcp) as client:
@@ -118,7 +118,7 @@ class TestRegisterErrorSafeWrapped:
         async with Client(mcp) as client:
             tools = {t.name: t for t in await client.list_tools()}
 
-        schema = tools["maybe_optional"].outputSchema
+        schema = tools["maybe_optional"].output_schema
         assert "result" not in set(schema.get("required") or [])
         validator = jsonschema.Draft7Validator(schema)
         # Both the in-memory tool object and the client-side schema agree.
@@ -137,16 +137,16 @@ class TestRegisterErrorSafeWrapped:
             return None
 
         register_error_safe_wrapped(
-            mcp, by_url, title="By URL", annotations={"readOnlyHint": True}
+            mcp, by_url, title="By URL", annotations={"read_only_hint": True}
         )
 
         async with Client(mcp) as client:
             tools = {t.name: t for t in await client.list_tools()}
 
         t = tools["by_url"]
-        props = set((t.inputSchema.get("properties") or {}).keys())
+        props = set((t.input_schema.get("properties") or {}).keys())
         assert props == {"url", "limit"}
-        assert set(t.inputSchema.get("required") or []) == {"url"}
+        assert set(t.input_schema.get("required") or []) == {"url"}
 
 
 # --- the three REAL tools, as registered on the production server ---------
@@ -163,7 +163,7 @@ class TestRealServerWrappedTools:
             tools = {t.name: t for t in await client.list_tools()}
 
         for name in self.WRAPPED:
-            schema = tools[name].outputSchema
+            schema = tools[name].output_schema
             assert schema.get("x-fastmcp-wrap-result") is True, name
             assert "result" in (schema.get("properties") or {}), name
             assert "result" not in set(schema.get("required") or []), name
