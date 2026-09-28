@@ -51,8 +51,5 @@ jobs:
           echo "version=${NEXT}" >> "$GITHUB_OUTPUT"
 
       # Deploy happens off the push to main itself (the merge), not this tag:
-      # the Komodo stack `git-mcp-readwise-mini` has webhook_enabled + auto_pull
-      # + run_build, and compose.yaml builds from source (no GHCR image). Do NOT
-      # copy mcp-timely/mcp-klartext's GHCR build-push + explicit "Trigger
-      # Komodo deploy" steps here; those exist only because those stacks pull
-      # ghcr.io/...:latest.
+      # compose.yaml builds from source (no GHCR image), so there is no image
+      # build or explicit deploy trigger here.

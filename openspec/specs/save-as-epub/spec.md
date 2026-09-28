@@ -167,11 +167,11 @@ The tool SHALL deliver the EPUB by sending an email via `aiosmtplib` to the conf
 
 #### Scenario: SMTP send to Resend default host
 
-- **GIVEN** `SMTP_HOST="smtp.resend.com"`, `SMTP_PORT=587`, `RESEND_API_KEY="re_…"`, `EPUB_FROM_ADDRESS="mcp-readwise@cdit-dev.de"`, `READWISE_LIBRARY_EMAIL="custom@library.readwise.io"`
+- **GIVEN** `SMTP_HOST="smtp.resend.com"`, `SMTP_PORT=587`, `RESEND_API_KEY="re_…"`, `EPUB_FROM_ADDRESS="mcp-readwise@example.com"`, `READWISE_LIBRARY_EMAIL="custom@library.readwise.io"`
 - **WHEN** `save_markdown_as_epub` runs
 - **THEN** the tool connects to `smtp.resend.com:587` with STARTTLS
 - **AND** authenticates with username `"resend"` and password equal to `RESEND_API_KEY`
-- **AND** sends a message with `From: mcp-readwise@cdit-dev.de`, `To: custom@library.readwise.io`, `Subject: <resolved title>`
+- **AND** sends a message with `From: mcp-readwise@example.com`, `To: custom@library.readwise.io`, `Subject: <resolved title>`
 - **AND** attaches the EPUB as a base64-encoded MIME part with `Content-Type: application/epub+zip` and `Content-Disposition: attachment; filename="<safe-filename>.epub"`
 
 #### Scenario: SMTP host override works for alternate providers
