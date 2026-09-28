@@ -36,7 +36,8 @@ async def save_markdown(
 
     Use this for content you own — notes, drafts, distilled summaries,
     briefings — that you want to read in Reader's long-form view. For
-    saving a public URL (where Reader fetches and parses), use `save_url`.
+    saving a public URL (where Reader fetches and parses), use the official
+    Readwise connector's `reader_create_document`.
 
     The markdown body is rendered to clean HTML and posted to Reader with
     `should_clean_html=false` so the structure is preserved. The default

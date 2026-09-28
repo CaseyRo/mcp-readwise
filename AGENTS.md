@@ -2,7 +2,7 @@
 
 ## Project Overview
 - **mcp-readwise**: Python FastMCP server providing MCP access to Readwise highlights, books, tags, and Reader documents
-- **Tech Stack**: Python 3.12, FastMCP 3.x, httpx, Pydantic, pydantic-settings
+- **Tech Stack**: Python 3.12, FastMCP 4.x, httpx, Pydantic, pydantic-settings
 - **Deployment**: Docker (python:3.12-slim) -> Komodo -> Cloudflare MCP Portal
 
 ## Project Structure
@@ -13,7 +13,7 @@ mcp_readwise/
   client.py      # Centralized httpx client (auth, retries, rate limits)
   auth.py        # BearerTokenVerifier for MCP Portal
   models/        # Pydantic response models (highlights, books, tags, reader)
-  tools/         # Tool functions by domain (highlights, books, tags, reader, export)
+  tools/         # Tool functions (status, writing, markdown, epub, reader, tags)
 ```
 
 ## Conventions

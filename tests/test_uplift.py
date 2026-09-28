@@ -20,18 +20,6 @@ from mcp_readwise.models.highlights import DeletionResult
 
 class TestDeletionResult:
     @pytest.mark.asyncio
-    async def test_delete_highlight_returns_typed_model(self):
-        with patch("mcp_readwise.tools.highlights.client") as mock_client:
-            mock_client.delete = AsyncMock(return_value=None)
-            from mcp_readwise.tools.highlights import delete_highlight
-
-            result = await delete_highlight(highlight_id=1001)
-
-        assert isinstance(result, DeletionResult)
-        assert result.deleted is True
-        assert result.id == 1001
-
-    @pytest.mark.asyncio
     async def test_delete_tag_returns_typed_model(self):
         with patch("mcp_readwise.tools.tags.client") as mock_client:
             mock_client.delete = AsyncMock(return_value=None)
@@ -133,7 +121,7 @@ class TestServerWiring:
         from mcp_readwise.server import mcp
 
         tools = await mcp._list_tools()
-        assert len(tools) == 16
+        assert len(tools) == 10
         for t in tools:
             assert t.annotations is not None, t.name
             assert t.annotations.open_world_hint is True, t.name
@@ -144,7 +132,7 @@ class TestServerWiring:
         from mcp_readwise.server import mcp
 
         tools = {t.name: t for t in await mcp._list_tools()}
-        for name in ("delete_highlight", "delete_tag"):
+        for name in ("delete_tag",):
             assert tools[name].annotations.destructive_hint is True, name
 
     @pytest.mark.asyncio
@@ -157,7 +145,6 @@ class TestServerWiring:
             "writing_material",
             "list_tags",
             "verify_epub_received",
-            "reader_list_documents",
             "reader_get_by_url",
         ):
             assert tools[name].annotations.read_only_hint is True, name

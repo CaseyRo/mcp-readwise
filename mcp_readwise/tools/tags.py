@@ -1,8 +1,6 @@
-"""Tag tools — list, create, delete, tag/untag highlights."""
+"""Tag tools — list, create, delete (v2 highlight tags)."""
 
 from __future__ import annotations
-
-from typing import Literal
 
 from mcp_readwise.client import client
 from mcp_readwise.models.highlights import DeletionResult
@@ -41,32 +39,3 @@ async def delete_tag(tag_id: int) -> DeletionResult:
     await client.delete(f"/api/v2/tags/{tag_id}")
     return DeletionResult(deleted=True, id=tag_id)
 
-
-async def tag_highlight(
-    highlight_id: int,
-    tag: str,
-    action: Literal["add", "remove"],
-) -> list[str]:
-    """Add or remove a tag on a highlight.
-
-    Use action='add' to tag a highlight (creates the tag if it doesn't exist).
-    Use action='remove' to untag it.
-    Returns the highlight's updated list of tag names.
-    """
-    if action == "add":
-        await client.post(
-            f"/api/v2/highlights/{highlight_id}/tags/", name=tag
-        )
-    else:
-        tags_data = await client.get(f"/api/v2/highlights/{highlight_id}/tags/")
-        tag_list = tags_data if isinstance(tags_data, list) else tags_data.get("results", [])
-        for t in tag_list:
-            if t.get("name") == tag:
-                await client.delete(
-                    f"/api/v2/highlights/{highlight_id}/tags/{t['id']}"
-                )
-                break
-
-    updated = await client.get(f"/api/v2/highlights/{highlight_id}/tags/")
-    result_list = updated if isinstance(updated, list) else updated.get("results", [])
-    return [t.get("name", "") for t in result_list]

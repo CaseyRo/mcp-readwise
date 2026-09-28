@@ -18,18 +18,11 @@ from mcp_readwise import __version__
 from mcp_readwise.auth import BearerTokenVerifier
 from mcp_readwise.config import settings
 from mcp_readwise.engagement import get_index, index_status
-from mcp_readwise.tools.highlights import (
-    create_highlight,
-    delete_highlight,
-    update_highlight,
-)
 from mcp_readwise.tools.epub_sender import save_markdown_as_epub
 from mcp_readwise.tools.epub_verifier import verify_epub_received
 from mcp_readwise.tools.markdown import save_markdown
 from mcp_readwise.tools.reader import (
     reader_get_by_url,
-    reader_list_documents,
-    save_url,
     update_progress,
 )
 from mcp_readwise.tools.status import reading_status
@@ -37,7 +30,6 @@ from mcp_readwise.tools.tags import (
     create_tag,
     delete_tag,
     list_tags,
-    tag_highlight,
 )
 from mcp_readwise.tools.writing import writing_material
 from mcp_readwise.prompts import register_prompts
@@ -109,9 +101,11 @@ async def _lifespan(app):
 
 _INSTRUCTIONS = """\
 mcp-readwise is an engagement-aware bridge to a personal Readwise + Readwise
-Reader library. It does NOT mirror Readwise's REST surface — it exposes a small
-set of workflow-shaped tools built on a cached engagement index that joins v2
-books, their highlights, and v3 Reader documents into scored `Source`s.
+Reader library. It does NOT mirror Readwise's REST surface — it exposes only
+what the official Readwise connector lacks: engagement-scored reads, branded
+markdown/EPUB delivery, reading progress, by-URL lookup and v2 tag management.
+Use the official Readwise connector for Reader search/list/save/move/tags,
+highlight CRUD and highlight tags, highlight search and daily review.
 
 Picking a read tool:
   - `reading_status` — single-call library snapshot: recent activity, durable
@@ -121,11 +115,10 @@ Picking a read tool:
     `book_id` / `document_id` / `title_search` (one source) or `topic` (across
     sources). Exactly one selector; ambiguous title_search errors list
     candidate ids.
-  - `reader_list_documents` / `reader_get_by_url` — go past the engagement
-    cache to browse or look up the full Reader library (e.g. archived docs).
+  - `reader_get_by_url` — exact (canonicalized) source-URL lookup across the
+    full Reader library, beyond the engagement cache (e.g. archived docs).
 
 Saving content:
-  - `save_url` — save a public URL; Reader fetches and parses it.
   - `save_markdown` — synchronous; posts owned markdown as Reader-ready HTML
     (returns the ReaderDocument in the same call).
   - `save_markdown_as_epub` — ASYNC: renders a real EPUB 3 with CDIT brand
@@ -136,7 +129,7 @@ Saving content:
     READWISE_LIBRARY_EMAIL, RESEND_API_KEY, EPUB_FROM_ADDRESS — it raises
     ConfigurationError (listing the missing ones) if unset.
 
-Env vars: the read/save/tag/highlight tools need READWISE_TOKEN. Only
+Env vars: the read/save/tag tools need READWISE_TOKEN. Only
 `save_markdown_as_epub` needs the three EPUB-sender vars above;
 `verify_epub_received` does not.
 
@@ -169,23 +162,6 @@ mcp.tool(
     annotations={**_OPEN, "read_only_hint": True},
 )
 
-# Highlights — write
-mcp.tool(
-    create_highlight,
-    title="Create highlight",
-    annotations=_OPEN,
-)
-mcp.tool(
-    update_highlight,
-    title="Update highlight",
-    annotations={**_OPEN, "idempotent_hint": True},
-)
-mcp.tool(
-    delete_highlight,
-    title="Delete highlight",
-    annotations={**_OPEN, "destructive_hint": True, "idempotent_hint": True},
-)
-
 # Tags
 mcp.tool(
     list_tags,
@@ -202,18 +178,8 @@ mcp.tool(
     title="Delete tag",
     annotations={**_OPEN, "destructive_hint": True, "idempotent_hint": True},
 )
-mcp.tool(
-    tag_highlight,
-    title="Add or remove a highlight tag",
-    annotations={**_OPEN, "idempotent_hint": True},
-)
 
 # Reader — write/update tools
-mcp.tool(
-    save_url,
-    title="Save URL to Reader",
-    annotations=_OPEN,
-)
 mcp.tool(
     save_markdown,
     title="Save markdown to Reader",
@@ -237,11 +203,6 @@ mcp.tool(
 
 # Reader — by-URL / archive lookup beyond the engagement cache (CDI-1147)
 mcp.tool(
-    reader_list_documents,
-    title="List Reader documents",
-    annotations={**_OPEN, "read_only_hint": True},
-)
-mcp.tool(
     reader_get_by_url,
     title="Get Reader document by URL",
     annotations={**_OPEN, "read_only_hint": True},
@@ -251,15 +212,10 @@ mcp.tool(
 register_resources(mcp)
 register_prompts(mcp)
 
-# NOTE: v0.4.0 BREAKING — the following read primitives are no longer
-# registered as MCP tools. Their client functions remain available for
-# internal use by the engagement module:
-#   - search_highlights, list_highlights, get_highlight
-#   - list_books, get_book
-#   - list_documents, get_document
-#   - export_highlights
-# Migrate callers to `reading_status` (orientation, status, patterns) or
-# `writing_material` (highlights for drafting, source bundles).
+# NOTE: v0.4.0 dropped the raw read primitives (highlights/books/documents/
+# export); the trim to unique tools dropped highlight CRUD, tag_highlight,
+# save_url and reader_list_documents. The official Readwise connector
+# (claude.ai) covers all of those.
 
 
 def _build_version() -> str:
@@ -281,7 +237,7 @@ async def health_check(request: Request) -> JSONResponse:
         "build": _build,
         "git_commit": _git_commit,
         "uptime_seconds": int((datetime.now(timezone.utc) - _start_time).total_seconds()),
-        "tools": 16,
+        "tools": 10,
         "engagement_index": index_status(),
         "epub_sender": {
             "configured": settings.epub_sender_configured,

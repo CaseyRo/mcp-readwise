@@ -17,19 +17,13 @@ from fastmcp import Client
 from mcp_readwise.server import mcp
 
 EXPECTED_TOOLS = {
-    "create_highlight",
     "create_tag",
-    "delete_highlight",
     "delete_tag",
     "list_tags",
     "reader_get_by_url",
-    "reader_list_documents",
     "reading_status",
     "save_markdown",
     "save_markdown_as_epub",
-    "save_url",
-    "tag_highlight",
-    "update_highlight",
     "update_progress",
     "verify_epub_received",
     "writing_material",
@@ -38,9 +32,10 @@ EXPECTED_TOOLS = {
 
 @pytest.mark.asyncio
 async def test_server_registers_its_tools():
+    # Exact: the tools the official Readwise connector covers must stay gone.
     async with Client(mcp) as client:
         names = {t.name for t in await client.list_tools()}
-    assert EXPECTED_TOOLS <= names, f"missing: {EXPECTED_TOOLS - names}"
+    assert names == EXPECTED_TOOLS, f"diff: {names ^ EXPECTED_TOOLS}"
 
 
 @pytest.mark.asyncio

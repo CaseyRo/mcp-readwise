@@ -105,25 +105,8 @@ class TestNoSharedMutableDefaults:
 # The EXACT top-level field names each object-returning tool emits today.
 # Renaming/removing any of these is not allowed.
 EXPECTED_TOP_LEVEL = {
-    "create_highlight": {
-        "id", "text", "note", "tags", "book_id", "book_title",
-        "book_author", "source_url", "highlighted_at", "created_at",
-        "updated_at", "is_favorite", "is_discard",
-    },
-    "update_highlight": {
-        "id", "text", "note", "tags", "book_id", "book_title",
-        "book_author", "source_url", "highlighted_at", "created_at",
-        "updated_at", "is_favorite", "is_discard",
-    },
-    "delete_highlight": {"deleted", "id"},
     "delete_tag": {"deleted", "id"},
     "create_tag": {"id", "name"},
-    "save_url": {
-        "id", "title", "author", "source_url", "category", "location",
-        "reading_progress", "word_count", "summary", "content", "tags",
-        "created_at", "updated_at", "saved_at", "first_opened_at",
-        "last_opened_at", "last_moved_at", "reading_status",
-    },
     "save_markdown": {
         "id", "title", "author", "source_url", "category", "location",
         "reading_progress", "word_count", "summary", "content", "tags",
@@ -141,7 +124,6 @@ EXPECTED_TOP_LEVEL = {
         "file_size_bytes", "title", "location", "identifier_scheme", "note",
     },
     "verify_epub_received": {"found", "document", "note"},
-    "reader_list_documents": {"results", "count", "next_cursor"},
     "reading_status": {
         "this_window", "evergreen_top", "current_top", "junk_drawer",
         "signal_density", "window_days", "week_offset",
@@ -155,7 +137,7 @@ EXPECTED_TOP_LEVEL = {
 # Tools whose return is a top-level JSON array / scalar / optional. fastmcp
 # wraps these under {"result": ...}; we must NOT promote them to object models
 # (that would change the wire shape the portal already published).
-WRAPPED_RESULT_TOOLS = {"list_tags", "tag_highlight", "reader_get_by_url"}
+WRAPPED_RESULT_TOOLS = {"list_tags", "reader_get_by_url"}
 
 
 def _list_tools():
@@ -165,9 +147,9 @@ def _list_tools():
 
 
 class TestTopLevelFieldsPreserved:
-    def test_all_sixteen_registered(self):
+    def test_all_ten_registered(self):
         tools = _list_tools()
-        assert len(tools) == 16
+        assert len(tools) == 10
 
     def test_object_tools_preserve_field_names(self):
         tools = _list_tools()

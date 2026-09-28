@@ -1,8 +1,19 @@
 # mcp-readwise
 
-MCP server for [Readwise](https://readwise.io) and Readwise Reader, built on [FastMCP](https://github.com/prefecthq/fastmcp). Engagement-aware reads, the usual write tools, and one thing you can't easily do anywhere else: **turn a markdown blob into a real, brand-styled EPUB and have it land in your Reader Library a minute later.**
+MCP server for [Readwise](https://readwise.io) and Readwise Reader, built on [FastMCP](https://github.com/prefecthq/fastmcp). Engagement-aware reads, the few write tools the official Readwise connector lacks, and one thing you can't easily do anywhere else: **turn a markdown blob into a real, brand-styled EPUB and have it land in your Reader Library a minute later.**
 
-16 tools. Python 3.12. Deployed via Docker.
+10 tools. Python 3.12. Deployed via Docker.
+
+## Scope: what this server adds over the official connector
+
+The official claude.ai Readwise connector covers Reader search/list/create/move/tags, highlight CRUD and highlight tags, highlight vector search and daily review. Use it for those. This server keeps only what the connector lacks:
+
+- **EPUB delivery** — `save_markdown_as_epub` + `verify_epub_received` (real EPUB 3 via the email-to-library path).
+- **Branded render** — `save_markdown` (frontmatter + CDIT-styled HTML).
+- **Engagement-scored reads** — `reading_status`, `writing_material`.
+- **Reading progress** — `update_progress`.
+- **By-URL lookup** — `reader_get_by_url` (canonicalized exact source-URL match; the connector has no URL filter).
+- **v2 tag management** — `create_tag` / `delete_tag`, plus `list_tags` as the only source of the v2 tag ids `delete_tag` needs.
 
 ## Why this exists
 
@@ -112,7 +123,7 @@ all render properly through the `extra` + `sane_lists` + `smarty` extensions.
 - Pandoc binary in the Docker image: ~150 MB. Accepted cost.
 - Inline images in markdown must use absolute HTTPS URLs — pandoc fetches them at build time; relative paths don't resolve.
 
-## The other 14 tools
+## The other 8 tools
 
 ### Read (engagement-aware)
 
@@ -125,37 +136,33 @@ These two collapsed an earlier 7-tool read surface into intent-shaped calls. The
 
 ### Read (direct Reader lookup)
 
-These bypass the engagement cache to browse or look up the full Reader library (e.g. archived docs the cache doesn't surface).
+This bypasses the engagement cache to look up a document anywhere in the Reader library (e.g. archived docs the cache doesn't surface).
 
 | Tool | Description |
 |------|-------------|
-| `reader_list_documents` | Cursor-paginated list of Reader documents, filterable by `location` / `category` / `updated_after`. |
 | `reader_get_by_url` | Look up a single Reader document by its source URL. |
 
 ### Write
 
 | Tool | Description |
 |------|-------------|
-| `save_url` | Save a URL to Reader; Readwise fetches and parses. Synchronous. |
 | `save_markdown` | Save a markdown blob to Reader as rendered HTML with `category="epub"` UI hint. Synchronous, returns `ReaderDocument`. Use this for lightweight notes you don't need as a real EPUB. |
 | `save_markdown_as_epub` | The real-EPUB-via-email path described above. Async, returns `EpubSendResult`. |
 | `verify_epub_received` | Confirm a `save_markdown_as_epub` send has landed. Time-aware retry guidance in the response `note`. |
 | `update_progress` | Update reading progress (0.0–1.0). |
-| `create_highlight` / `update_highlight` / `delete_highlight` | Highlight CRUD with `note` and tags. |
 
 ### Tags
 
 | Tool | Description |
 |------|-------------|
-| `list_tags` | List user-created custom tags. |
-| `create_tag` / `delete_tag` | Tag CRUD. |
-| `tag_highlight` | Add or remove a tag on a highlight. |
+| `list_tags` | List user-created custom tags (with the ids `delete_tag` needs). |
+| `create_tag` / `delete_tag` | Tag create/delete. |
 
-### Three ways to save your own content into Reader
+### Ways to save your own content into Reader
 
 | You want | Use | Sync / Async | Fidelity | Setup |
 |---|---|---|---|---|
-| Save a URL (Readwise fetches & parses) | `save_url` | sync | HTML article | none |
+| Save a URL (Readwise fetches & parses) | official connector `reader_create_document` | sync | HTML article | none |
 | Save markdown as HTML with epub-UX hint | `save_markdown` | sync | HTML with `category="epub"` | none |
 | Save markdown as a real EPUB book | `save_markdown_as_epub` | **async** (1–5 min) | true EPUB 3 with TOC, chapter nav, brand styling | three env vars |
 
@@ -215,7 +222,7 @@ Returns build identifier, git commit, uptime, registered tool count, engagement 
   "status": "healthy",
   "version": "0.7.0",
   "build": "0.7.0+6ec5b6b",
-  "tools": 16,
+  "tools": 10,
   "engagement_index": { "built": true, "source_count": 152, "age_seconds": 312 },
   "epub_sender": {
     "configured": true,
@@ -264,7 +271,7 @@ mcp_readwise/
     status.py, writing.py             # Engagement-aware reads
     markdown.py                       # save_markdown (HTML path)
     epub_sender.py, epub_verifier.py  # Real-EPUB-via-email path
-    reader.py, highlights.py, tags.py # Standard write tools
+    reader.py, tags.py                # Progress, by-URL lookup, v2 tags
 ```
 
 ## Deployment
