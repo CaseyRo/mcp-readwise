@@ -90,7 +90,6 @@ class Source(BaseModel):
     engagement: EngagementScore = Field(default_factory=EngagementScore)
     is_legacy: bool = False
     legacy_recency: Optional[Literal["cold", "warm"]] = None
-    error: Optional[str] = None
 
     @field_validator("*", mode="before")
     @classmethod

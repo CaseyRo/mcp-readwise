@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -18,7 +17,6 @@ class ThisWindow(BaseModel):
     in_progress: list[Source] = Field(default_factory=list)
     saved_only: list[Source] = Field(default_factory=list)
     top_engaged: list[Source] = Field(default_factory=list)
-    error: Optional[str] = None
 
     @field_validator("finished", "in_progress", "saved_only", "top_engaged", mode="before")
     @classmethod
@@ -35,7 +33,6 @@ class JunkDrawer(BaseModel):
 
     count: int = 0
     examples: list[Source] = Field(default_factory=list)
-    error: Optional[str] = None
 
     @field_validator("*", mode="before")
     @classmethod
@@ -56,7 +53,6 @@ class SignalDensity(BaseModel):
     tags_per_highlight: float = 0.0
     notes_per_highlight: float = 0.0
     year_span: int = 0
-    error: Optional[str] = None
 
     @field_validator("*", mode="before")
     @classmethod
@@ -79,4 +75,3 @@ class ReadingStatus(BaseModel):
     signal_density: SignalDensity = Field(default_factory=SignalDensity)
     window_days: int = 7
     week_offset: int = 0
-    error: Optional[str] = None

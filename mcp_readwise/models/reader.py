@@ -11,8 +11,7 @@ ReadingStatus = Literal["finished", "in_progress", "saved_only"]
 
 
 class ReaderDocument(BaseModel):
-    # extra="allow" + optional error keep BOTH the success and any error-shaped
-    # payload valid against the published output_schema (mcp-zernio guard).
+    # extra="allow": an upstream adding a field must not break clients.
     model_config = ConfigDict(extra="allow")
 
     id: str = ""
@@ -35,7 +34,6 @@ class ReaderDocument(BaseModel):
     last_moved_at: str = ""
     # Derived
     reading_status: ReadingStatus = "saved_only"
-    error: Optional[str] = None
 
     @field_validator("*", mode="before")
     @classmethod
@@ -72,7 +70,6 @@ class ReaderListResult(BaseModel):
     results: list[ReaderDocument] = Field(default_factory=list)
     total: int = 0
     next_page: Optional[int] = None
-    error: Optional[str] = None
 
 
 class ReaderListPage(BaseModel):
@@ -89,4 +86,3 @@ class ReaderListPage(BaseModel):
     results: list[ReaderDocument] = Field(default_factory=list)
     count: int = 0
     next_cursor: Optional[str] = None
-    error: Optional[str] = None

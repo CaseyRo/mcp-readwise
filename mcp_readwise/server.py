@@ -40,7 +40,6 @@ from mcp_readwise.tools.tags import (
     tag_highlight,
 )
 from mcp_readwise.tools.writing import writing_material
-from mcp_readwise.output_schema import register_error_safe_wrapped
 from mcp_readwise.prompts import register_prompts
 from mcp_readwise.resources import register_resources
 
@@ -188,12 +187,7 @@ mcp.tool(
 )
 
 # Tags
-# `list_tags` returns list[TagResult] → fastmcp wraps it under {"result": ...}
-# with required:["result"]. Register via the error-path-safe helper so a
-# top-level {"error": ...} payload also validates against the published schema
-# (mcp-zernio guard). Wire shape for success is unchanged.
-register_error_safe_wrapped(
-    mcp,
+mcp.tool(
     list_tags,
     title="List tags",
     annotations={**_OPEN, "read_only_hint": True},
@@ -208,9 +202,7 @@ mcp.tool(
     title="Delete tag",
     annotations={**_OPEN, "destructive_hint": True, "idempotent_hint": True},
 )
-# `tag_highlight` returns list[str] → same wrapped-result error-path hazard.
-register_error_safe_wrapped(
-    mcp,
+mcp.tool(
     tag_highlight,
     title="Add or remove a highlight tag",
     annotations={**_OPEN, "idempotent_hint": True},
@@ -249,11 +241,7 @@ mcp.tool(
     title="List Reader documents",
     annotations={**_OPEN, "read_only_hint": True},
 )
-# `reader_get_by_url` returns Optional[ReaderDocument] → fastmcp wraps it under
-# {"result": ...} with required:["result"], so a top-level {"error": ...} would
-# fail strict validation. Register via the error-path-safe helper.
-register_error_safe_wrapped(
-    mcp,
+mcp.tool(
     reader_get_by_url,
     title="Get Reader document by URL",
     annotations={**_OPEN, "read_only_hint": True},

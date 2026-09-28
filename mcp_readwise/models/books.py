@@ -20,7 +20,6 @@ class BookResult(BaseModel):
     source_url: str = ""
     created_at: str = ""
     updated_at: str = ""
-    error: Optional[str] = None
 
     @field_validator("*", mode="before")
     @classmethod
@@ -37,4 +36,3 @@ class BookListResult(BaseModel):
     results: list[BookResult] = Field(default_factory=list)
     total: int = 0
     next_page: Optional[int] = None
-    error: Optional[str] = None

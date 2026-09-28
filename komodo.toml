@@ -22,9 +22,10 @@ webhook_force_deploy = true
 auto_pull = true
 run_build = true
 file_paths = ["compose.yaml"]
-# Bakes the deployed short sha into .env so /health can report git_commit.
+# Bakes the deployed short sha + latest release tag into .env for /health.
 pre_deploy.command = """
 echo "GIT_COMMIT=$(git rev-parse --short HEAD)" >> /etc/komodo/stacks/git-mcp-readwise-mini/.env
+echo "APP_VERSION=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null | sed 's/^v//')" >> /etc/komodo/stacks/git-mcp-readwise-mini/.env
 """
 environment = """
 READWISE_TOKEN = [[READWISE_TOKEN]]

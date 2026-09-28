@@ -4,6 +4,7 @@ services:
       context: .
       args:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        APP_VERSION: ${APP_VERSION:-}
     restart: unless-stopped
     ports:
       # Not bound to 127.0.0.1 because cloudflared tunnel connects via Tailscale IP
