@@ -69,7 +69,8 @@ async def save_markdown_as_epub(
     emails it as an attachment to the user's Readwise Library address through
     a Resend SMTP relay. Use this for owned content you want to read in
     Reader's true EPUB experience (TOC, chapter nav, EPUB export). For
-    URL-based content use `save_url`; for lightweight HTML-as-epub-UX use
+    URL-based content use the official Readwise connector's
+    `reader_create_document`; for lightweight HTML-as-epub-UX use
     `save_markdown` (synchronous, same-call ReaderDocument back).
 
     Frontmatter is supported (same parser as save_markdown). Explicit

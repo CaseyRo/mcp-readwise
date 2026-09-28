@@ -1,4 +1,4 @@
-"""Reader tools — list documents, get document, save URL, update progress."""
+"""Reader tools — update progress, by-URL lookup (+ internal list/get helpers)."""
 
 from __future__ import annotations
 
@@ -11,7 +11,6 @@ from pydantic import AnyHttpUrl, Field
 from mcp_readwise.client import client
 from mcp_readwise.models.reader import (
     ReaderDocument,
-    ReaderListPage,
     ReaderListResult,
 )
 
@@ -46,8 +45,7 @@ def _parse_tags(raw: object) -> list[str]:
 def _item_to_document(item: dict) -> ReaderDocument:
     """Build a ReaderDocument from a raw v3 list/get response dict.
 
-    Used by `list_documents`, `reader_list_documents`, and `reader_get_by_url`
-    so all three share one normalization path.
+    Used by `reader_get_by_url`.
     """
     return ReaderDocument(
         id=str(item.get("id", "")),
@@ -175,61 +173,6 @@ async def get_document(document_id: str) -> ReaderDocument:
     )
 
 
-async def save_url(
-    url: AnyHttpUrl,
-    title: Optional[str] = None,
-    tags: Optional[list[str]] = None,
-    location: Literal["new", "later", "shortlist", "archive"] = "new",
-    note: Optional[str] = None,
-) -> ReaderDocument:
-    """Save a URL to Readwise Reader.
-
-    This is the primary way to add content to Reader. The service fetches
-    and parses the article automatically. Only http:// and https:// URLs
-    are accepted.
-
-    location controls where it appears: 'new' (inbox), 'later', 'shortlist',
-    or 'archive'. Default is 'new'. Use `note` (singular) for any annotation
-    you want attached to the saved document.
-    """
-    # `url` arrives as a Pydantic `AnyHttpUrl`. Always coerce to `str` before
-    # using it anywhere downstream (request payload, response fallback, model
-    # construction) — `ReaderDocument.source_url` is typed `str` and Pydantic v2
-    # does NOT auto-coerce `AnyHttpUrl` → `str` (CDI-1149).
-    url_str = str(url)
-    payload: dict = {"url": url_str, "location": location}
-    if title:
-        payload["title"] = title
-    if tags:
-        payload["tags"] = tags
-    if note:
-        # Reader v3 endpoint accepts the field as `notes` (plural); MCP surface
-        # standardizes on singular `note` to match the highlights endpoints.
-        payload["notes"] = note
-
-    data = await client.post("/api/v3/save/", **payload)
-
-    doc_tags = []
-    if isinstance(data.get("tags"), dict):
-        doc_tags = list(data["tags"].keys())
-    elif isinstance(data.get("tags"), list):
-        doc_tags = [t.get("name", t) if isinstance(t, dict) else str(t) for t in data["tags"]]
-
-    return ReaderDocument(
-        id=str(data.get("id", "")),
-        title=data.get("title", title or ""),
-        author=data.get("author", ""),
-        source_url=data.get("source_url") or url_str,
-        category=data.get("category", ""),
-        location=data.get("location", location),
-        reading_progress=0.0,
-        tags=doc_tags,
-        created_at=data.get("created_at", ""),
-        updated_at=data.get("updated_at", ""),
-        saved_at=data.get("saved_at", ""),
-    )
-
-
 async def update_progress(
     document_id: str,
     reading_progress: Annotated[float, Field(ge=0.0, le=1.0)],
@@ -274,59 +217,6 @@ def _canonicalize_url(url: str) -> str:
         else:
             s = f"{scheme.lower()}://{rest.lower()}"
     return s
-
-
-async def reader_list_documents(
-    location: Optional[
-        Literal["new", "later", "shortlist", "archive", "feed"]
-    ] = None,
-    category: Optional[
-        Literal[
-            "article", "email", "rss", "highlight", "note",
-            "pdf", "epub", "tweet", "video",
-        ]
-    ] = None,
-    updated_after: Optional[str] = None,
-    page_cursor: Optional[str] = None,
-    limit: Annotated[int, Field(ge=1, le=100)] = 100,
-) -> ReaderListPage:
-    """List Reader documents from the full library (not just the engagement cache).
-
-    Goes directly against Readwise Reader v3 `/api/v3/list/` and returns the
-    raw document records. Unlike `reading_status` / `writing_material`, this
-    surface is URL/archive-shaped, not engagement-shaped — use it to browse
-    archived/saved-but-unread material that never made it into the
-    engagement index.
-
-    Pagination is cursor-based: pass `next_cursor` from the previous page
-    back as `page_cursor`. `next_cursor` is `null` on the final page.
-
-    Filters:
-      - `location`: 'new' (inbox), 'later', 'shortlist', 'archive', or 'feed'.
-      - `category`: 'article', 'email', 'rss', 'highlight', 'note', 'pdf',
-        'epub', 'tweet', 'video'.
-      - `updated_after`: ISO 8601 datetime to fetch only docs updated since.
-
-    Tip: `location='archive'` is the typical entry point for "the article
-    I archived a while back" lookups.
-    """
-    params: dict = {"limit": limit}
-    if location:
-        params["location"] = location
-    if category:
-        params["category"] = category
-    if updated_after:
-        params["updatedAfter"] = updated_after
-    if page_cursor:
-        params["pageCursor"] = page_cursor
-
-    data = await client.get("/api/v3/list/", **params)
-    raw_results = data.get("results", []) or []
-    next_cursor = data.get("nextPageCursor")
-    count = data.get("count", len(raw_results))
-
-    results = [_item_to_document(item) for item in raw_results]
-    return ReaderListPage(results=results, count=count, next_cursor=next_cursor)
 
 
 async def reader_get_by_url(
