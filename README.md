@@ -2,7 +2,9 @@
 
 MCP server for [Readwise](https://readwise.io) and Readwise Reader, built on [FastMCP](https://github.com/prefecthq/fastmcp). Engagement-aware reads, the few write tools the official Readwise connector lacks, and one thing you can't easily do anywhere else: **turn a markdown blob into a real, brand-styled EPUB and have it land in your Reader Library a minute later.**
 
-10 tools. Python 3.12. Deployed via Docker.
+It is for Readwise users who work with Claude or another MCP client and want their reading history, engagement signals and long-form drafts to flow into Reader without copy and paste. It is designed to run next to the official Readwise connector, not to replace it.
+
+10 tools, 2 prompts, 6 resources. Python 3.11+, FastMCP 4. Runs over stdio for a local client or as an HTTP server in Docker.
 
 ## Scope: what this server adds over the official connector
 
@@ -47,13 +49,13 @@ Three environment variables, all required (the server still boots without them �
 # Your custom Readwise Library email
 # Find at: read.readwise.io → Account → Personalize email addresses
 # Bearer credential — rotate via Readwise if it leaks.
-READWISE_LIBRARY_EMAIL=casey-personal@library.readwise.io
+READWISE_LIBRARY_EMAIL=your-name@library.readwise.io
 
 # Resend API key, used as SMTP password (username is literal "resend")
 RESEND_API_KEY=re_…
 
 # Verified sender registered in Resend
-EPUB_FROM_ADDRESS=mcp-readwise@cdit-dev.de
+EPUB_FROM_ADDRESS=reader@example.com
 ```
 
 ### Calling it
@@ -166,48 +168,68 @@ This bypasses the engagement cache to look up a document anywhere in the Reader 
 | Save markdown as HTML with epub-UX hint | `save_markdown` | sync | HTML with `category="epub"` | none |
 | Save markdown as a real EPUB book | `save_markdown_as_epub` | **async** (1–5 min) | true EPUB 3 with TOC, chapter nav, brand styling | three env vars |
 
-## Installation
+## Requirements
+
+- Python 3.11 or newer and [uv](https://docs.astral.sh/uv/)
+- A Readwise access token ([get one](https://readwise.io/access_token))
+- [Pandoc](https://pandoc.org), only for `save_markdown_as_epub` (included in the Docker image)
+- For the EPUB path: an SMTP account (Resend by default) with a verified sender address
+
+## Installation and running
 
 ```bash
+git clone https://github.com/CaseyRo/mcp-readwise.git
+cd mcp-readwise
 uv sync
+
+# stdio (default), for a local MCP client
+READWISE_TOKEN=... uv run mcp-readwise
+
+# streamable HTTP on HOST:PORT, path /mcp
+READWISE_TOKEN=... MCP_API_KEY=... TRANSPORT=http uv run mcp-readwise
 ```
 
-Pandoc is required for `save_markdown_as_epub`. It's baked into the Docker image; for local dev install it via `brew install pandoc`. Other tools work without it.
+For local development install Pandoc with your package manager (for example `brew install pandoc`). The other tools work without it.
+
+### Docker
+
+```bash
+cp .env.example .env   # fill in the values
+docker compose up -d --build
+```
+
+`compose.yaml` builds the image from source, runs with `TRANSPORT=http` and publishes the server on host port 8010. `GIT_COMMIT` and `APP_VERSION` can be passed as build args so `/health` reports the running build.
 
 ## Configuration
 
+All settings are environment variables (see `.env.example`).
+
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `READWISE_TOKEN` | Yes | — | Readwise API access token ([get one](https://readwise.io/access_token)) |
-| `MCP_API_KEY` | When `TRANSPORT=http` | — | Bearer token for the MCP Portal auth |
+| `READWISE_TOKEN` | Yes | (empty) | Readwise API access token |
+| `MCP_API_KEY` | When `TRANSPORT=http` | (empty) | Bearer token clients must send; the server refuses to start in HTTP mode without it |
 | `TRANSPORT` | No | `stdio` | `stdio` or `http` |
-| `HOST` | No | `127.0.0.1` | HTTP server host |
-| `PORT` | No | `8000` | HTTP server port |
+| `HOST` | No | `127.0.0.1` | HTTP bind address |
+| `PORT` | No | `8000` | HTTP port |
 | `READWISE_BASE_URL` | No | `https://readwise.io` | Readwise API base URL |
-| `ENGAGEMENT_INDEX_TTL_SECONDS` | No | `1800` | TTL for the engagement index cache |
-| `ENGAGEMENT_TAG_DENYLIST` | No | (built-in) | Tags excluded from the annotation bonus |
+| `ENGAGEMENT_INDEX_TTL_SECONDS` | No | `14400` | TTL for the engagement index cache (4 hours) |
+| `ENGAGEMENT_TAG_DENYLIST` | No | (built-in) | Comma-separated tags excluded from the annotation bonus |
+| `LOG_LEVEL` | No | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR` or `CRITICAL` |
 | **EPUB sender (optional, but all three required together)** ||||
-| `READWISE_LIBRARY_EMAIL` | Only for `save_markdown_as_epub` | — | Your `<custom>@library.readwise.io` |
-| `RESEND_API_KEY` | Only for `save_markdown_as_epub` | — | Resend SMTP password |
-| `EPUB_FROM_ADDRESS` | Only for `save_markdown_as_epub` | — | Verified Resend sender address |
+| `READWISE_LIBRARY_EMAIL` | Only for `save_markdown_as_epub` | (empty) | Your `<custom>@library.readwise.io` |
+| `RESEND_API_KEY` | Only for `save_markdown_as_epub` | (empty) | SMTP password (Resend API key by default) |
+| `EPUB_FROM_ADDRESS` | Only for `save_markdown_as_epub` | (empty) | Verified sender address |
 | `SMTP_HOST` | No | `smtp.resend.com` | Override to use Postmark, SES, etc. |
 | `SMTP_PORT` | No | `587` | |
 | `EPUB_LANG` | No | `en` | EPUB OPF `dc:language` metadata |
 | `EPUB_MAX_BYTES` | No | `20971520` | 20 MiB ceiling before send |
+| **Build metadata (optional)** ||||
+| `GIT_COMMIT` | No | `unknown` | Commit reported by `/health` |
+| `APP_VERSION` | No | package version | Release version reported by `/health` |
 
-## Usage
+## Authentication
 
-```bash
-# Local stdio mode (default — for direct MCP client use)
-READWISE_TOKEN=… uv run mcp-readwise
-
-# HTTP mode (for MCP Portal / Cloudflare deployment)
-READWISE_TOKEN=… MCP_API_KEY=… TRANSPORT=http uv run mcp-readwise
-
-# Docker
-cp .env.example .env  # fill in values
-docker compose up -d
-```
+In stdio mode there is no server-side auth; the client that starts the process owns it. In HTTP mode every request to `/mcp` must carry `Authorization: Bearer <MCP_API_KEY>`. The key is compared in constant time. Put the server behind TLS (a reverse proxy or tunnel) before exposing it beyond localhost, and keep `MCP_API_KEY` and `READWISE_TOKEN` out of version control.
 
 ## Health endpoint
 
@@ -228,7 +250,7 @@ Returns build identifier, git commit, uptime, registered tool count, engagement 
     "configured": true,
     "smtp_host": "smtp.resend.com",
     "smtp_port": 587,
-    "from_address": "mcp-readwise@cdit-dev.de",
+    "from_address": "reader@example.com",
     "library_email_set": true
   }
 }
@@ -274,10 +296,28 @@ mcp_readwise/
     reader.py, tags.py                # Progress, by-URL lookup, v2 tags
 ```
 
-## Deployment
+## Telemetry
 
-Deployed via Komodo to `ubuntu-smurf-mini`, accessible through the Cloudflare MCP Portal at `mcp-readwise.cdit-dev.de`. Auto-deploys on push to `main` via GitHub webhook → Komodo listener.
+A vendored `usage.py` middleware writes one JSON line per tool call to stderr: server, tool, duration, outcome and protocol. Tool arguments are never logged. Tool failures are raised as `ToolError`, so clients receive a proper MCP error.
+
+## Development
+
+```bash
+uv sync
+uv run pytest
+uv run ruff check .
+```
+
+CI (`.github/workflows/ci.yml`) runs the same lint and tests as the required `test` check. `main` is branch-protected, so changes land through a pull request. A separate security workflow runs dependency audits.
+
+## Releases
+
+Releases are tag-only. After a merge to `main`, `.github/workflows/release.yml` runs the tests and `pip-audit`, then pushes the next `vX.Y.Z` tag. Nothing is committed back to the branch and there are no version-bump commits; the git tag is the version. Deployments build the image from source.
+
+## Support
+
+If this server saves you time, you can [buy me a coffee](https://buymeacoffee.com/caseyberlin).
 
 ## License
 
-MIT
+MIT, see [LICENSE](LICENSE).

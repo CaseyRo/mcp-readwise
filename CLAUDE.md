@@ -15,5 +15,5 @@ The official claude.ai Readwise connector (`mcp__claude_ai_readwise_MCP__…`) c
 - Tools are plain async functions registered in `server.py` with `mcp.tool(fn, title=..., annotations=...)`; output models must stay additive-only (`tests/test_output_schema_contract.py`).
 - Raise `fastmcp.exceptions.ToolError` for caller mistakes.
 - Test over the wire with the in-memory `fastmcp.Client(mcp)` (`tests/test_mcp_protocol.py`); see the `mcp-testing` skill.
-- Releases are tag-only via GitHub Actions + Komodo; `main` is protected (PR + `test` check). See the `cdit-release-pipeline` skill.
-- Fleet context, auth and the Cloudflare portal (catalog needs a manual sync after tool-surface changes): `CDiT-infrastructure/docs/wiki/topics/mcp-fleet.md`.
+- Releases are tag-only: after a merge, `release.yml` pushes the next `v*` tag; no version-bump commits. Deploys rebuild from source. `main` is protected (PR + `test` check). See the `cdit-release-pipeline` skill.
+- Behind an MCP portal, the portal's tool catalog needs a manual sync after tool-surface changes.

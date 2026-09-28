@@ -1,9 +1,9 @@
 # AGENTS.md
 
 ## Project Overview
-- **mcp-readwise**: Python FastMCP server providing MCP access to Readwise highlights, books, tags, and Reader documents
+- **mcp-readwise**: Python FastMCP server with the Readwise and Reader tools the official connector lacks: EPUB delivery, branded markdown saves, engagement-scored reads, reading progress, by-URL lookup and v2 tags
 - **Tech Stack**: Python 3.12, FastMCP 4.x, httpx, Pydantic, pydantic-settings
-- **Deployment**: Docker (python:3.12-slim) -> Komodo -> Cloudflare MCP Portal
+- **Deployment**: Docker (python:3.12-slim), built from source, served behind an MCP portal
 
 ## Project Structure
 ```
