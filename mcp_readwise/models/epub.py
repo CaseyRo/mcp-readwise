@@ -30,8 +30,7 @@ class EpubSendResult(BaseModel):
     not include "transcript logs leak."
     """
 
-    # extra="allow" + optional error keep BOTH the success and any error-shaped
-    # payload valid against the published output_schema (mcp-zernio guard).
+    # extra="allow": an upstream adding a field must not break clients.
     model_config = ConfigDict(extra="allow")
 
     success: bool = False
@@ -44,7 +43,6 @@ class EpubSendResult(BaseModel):
     location: str = ""
     identifier_scheme: str = ""
     note: str = ""
-    error: Optional[str] = None
 
 
 class VerifyResult(BaseModel):
@@ -60,4 +58,3 @@ class VerifyResult(BaseModel):
     found: bool = False
     document: Optional[ReaderDocument] = None
     note: str = ""
-    error: Optional[str] = None

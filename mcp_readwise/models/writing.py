@@ -23,7 +23,6 @@ class HighlightInMaterial(BaseModel):
     book_id: Optional[int] = None
     book_title: str = ""
     book_author: str = ""
-    error: Optional[str] = None
 
     @field_validator("*", mode="before")
     @classmethod
@@ -60,4 +59,3 @@ class WritingMaterial(BaseModel):
     has_legacy: bool = False
     has_more: bool = False
     total_highlights: int = 0
-    error: Optional[str] = None

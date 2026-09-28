@@ -8,9 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class HighlightResult(BaseModel):
-    # extra="allow" + optional error keep BOTH the success payload and any
-    # future error-shaped payload valid against the published output_schema
-    # (mcp-zernio regression guard — strict clients/portal must not reject).
+    # extra="allow": an upstream adding a field must not break clients.
     model_config = ConfigDict(extra="allow")
 
     id: int = 0
@@ -27,7 +25,6 @@ class HighlightResult(BaseModel):
     # First-class booleans (separate from tags per Readwise v2 docs)
     is_favorite: bool = False
     is_discard: bool = False
-    error: Optional[str] = None
 
     @field_validator("*", mode="before")
     @classmethod
@@ -44,7 +41,6 @@ class HighlightListResult(BaseModel):
     results: list[HighlightResult] = Field(default_factory=list)
     total: int = 0
     next_page: Optional[int] = None
-    error: Optional[str] = None
 
 
 class DeletionResult(BaseModel):
@@ -59,7 +55,6 @@ class DeletionResult(BaseModel):
 
     deleted: bool = True
     id: int = 0
-    error: Optional[str] = None
 
 
 class ExportResult(BaseModel):
@@ -67,7 +62,6 @@ class ExportResult(BaseModel):
 
     results: list[dict] = Field(default_factory=list)
     next_cursor: Optional[str] = None
-    error: Optional[str] = None
 
     @field_validator("next_cursor", mode="before")
     @classmethod

@@ -5,8 +5,10 @@ The Cloudflare MCP portal is synced manually and live clients validate tool
 the two invariants we must never regress on (the exact bug class fixed in
 mcp-zernio):
 
-1. Every output model validates BOTH a success payload AND an error payload
-   (so an error-shaped return never trips strict client validation).
+Tool failures raise ``ToolError`` (isError=true, no structured content), so
+the schemas describe success payloads only.
+
+1. Every output model tolerates empty/partial payloads and extra keys.
 2. The top-level field names each tool emits today are preserved exactly —
    additive-only changes. List/Optional-returning tools keep their fastmcp
    `{"result": ...}` wrapper wire shape.
@@ -67,14 +69,7 @@ ALL_OUTPUT_MODELS = [
 ]
 
 
-class TestErrorPayloadValidates:
-    """Rule 3: every output model must validate an error-shaped payload."""
-
-    @pytest.mark.parametrize("model", ALL_OUTPUT_MODELS)
-    def test_bare_error_payload(self, model):
-        m = model.model_validate({"error": "something failed"})
-        assert m.error == "something failed"
-
+class TestLenientPayloads:
     @pytest.mark.parametrize("model", ALL_OUTPUT_MODELS)
     def test_empty_payload_validates(self, model):
         # An empty dict (e.g. a degraded/partial response) must not raise —
@@ -84,8 +79,7 @@ class TestErrorPayloadValidates:
     @pytest.mark.parametrize("model", ALL_OUTPUT_MODELS)
     def test_extra_keys_tolerated(self, model):
         # extra="allow" — an upstream adding a field must not break clients.
-        m = model.model_validate({"error": None, "a_brand_new_upstream_key": 42})
-        assert m.error is None
+        model.model_validate({"a_brand_new_upstream_key": 42})
 
 
 class TestNoSharedMutableDefaults:
@@ -109,7 +103,7 @@ class TestNoSharedMutableDefaults:
 # --- Top-level wire-shape preservation -----------------------------------
 
 # The EXACT top-level field names each object-returning tool emits today.
-# Adding `error` is allowed (additive); renaming/removing any of these is not.
+# Renaming/removing any of these is not allowed.
 EXPECTED_TOP_LEVEL = {
     "create_highlight": {
         "id", "text", "note", "tags", "book_id", "book_title",
@@ -180,12 +174,7 @@ class TestTopLevelFieldsPreserved:
         for name, expected in EXPECTED_TOP_LEVEL.items():
             schema = tools[name].output_schema
             props = set((schema.get("properties") or {}).keys())
-            # Every original top-level name is still present...
-            missing = expected - props
-            assert not missing, f"{name} dropped fields: {missing}"
-            # ...and the only additions are the additive `error` guard.
-            added = props - expected
-            assert added <= {"error"}, f"{name} added unexpected top-level fields: {added}"
+            assert props == expected, f"{name}: {props ^ expected}"
 
     def test_object_tools_required_not_tightened(self):
         # Relaxing `required` is safe; tightening it would reject previously
@@ -205,22 +194,7 @@ class TestTopLevelFieldsPreserved:
             assert schema.get("x-fastmcp-wrap-result") is True, name
             props = set((schema.get("properties") or {}).keys())
             assert "result" in props, name
-            # The ONLY additive top-level property allowed is the ``error`` guard.
-            assert props - {"result"} <= {"error"}, name
-
-    def test_wrapped_tools_are_error_path_safe(self):
-        # The mcp-zernio bug class: a wrapped-result tool whose schema requires
-        # ``result`` rejects a top-level {"error": ...} payload. After the fix,
-        # ``result`` must NOT be required and extra keys must be tolerated, so an
-        # error payload validates against the published schema.
-        jsonschema = pytest.importorskip("jsonschema")
-        tools = _list_tools()
-        for name in WRAPPED_RESULT_TOOLS:
-            schema = tools[name].output_schema
-            assert "result" not in set(schema.get("required") or []), name
-            validator = jsonschema.Draft7Validator(schema)
-            errors = list(validator.iter_errors({"error": "boom"}))
-            assert not errors, f"{name} rejects error payload: {errors}"
+            assert props == {"result"}, name
 
 
 # --- Success payloads still validate (no false positives) -----------------
@@ -232,7 +206,6 @@ class TestSuccessPayloadsValidate:
             {"id": 1, "text": "t", "book_id": 5, "tags": ["a"]}
         )
         assert m.id == 1
-        assert m.error is None
 
     def test_deletion_success(self):
         m = DeletionResult.model_validate({"deleted": True, "id": 7})
@@ -244,7 +217,6 @@ class TestSuccessPayloadsValidate:
             {"id": "x", "location": "archive", "reading_progress": 0.0}
         )
         assert m.reading_status == "finished"
-        assert m.error is None
 
     def test_epub_send_success(self):
         m = EpubSendResult.model_validate(
@@ -261,4 +233,3 @@ class TestSuccessPayloadsValidate:
             }
         )
         assert m.success is True
-        assert m.error is None
