@@ -47,11 +47,11 @@ class TestBuildMessage:
         # CDI-1311: the reported message_id must be a real header on the wire,
         # not a fabricated UUID. It should carry the sender's domain.
         msg = _build_message(
-            "mcp-readwise@cdit-dev.de", "to@b.com", "S", "body", b"e", "x.epub"
+            "mcp-readwise@example.com", "to@b.com", "S", "body", b"e", "x.epub"
         )
         mid = msg.get("Message-ID", "")
         assert mid.startswith("<") and mid.endswith(">")
-        assert mid.endswith("@cdit-dev.de>")
+        assert mid.endswith("@example.com>")
 
 
 class TestIsTransient:
@@ -104,7 +104,7 @@ class TestSendEpub:
 
         monkeypatch.setattr("aiosmtplib.send", fake_send)
         result = await send_epub(
-            "mcp@cdit-dev.de", "to@b.com", "S", "body", b"epub", "x.epub"
+            "mcp@example.com", "to@b.com", "S", "body", b"epub", "x.epub"
         )
         assert result.message_id == captured["mid"].strip("<>")
         assert result.message_id  # non-empty

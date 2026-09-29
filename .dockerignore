@@ -11,6 +11,5 @@ openspec
 Dockerfile
 .dockerignore
 compose.yaml
-komodo.toml
 AGENTS.md
 CHANGELOG.md

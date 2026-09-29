@@ -21,7 +21,7 @@ def configured(monkeypatch):
     monkeypatch.setattr(settings, "readwise_library_email", "casey@library.readwise.io")
     from pydantic import SecretStr
     monkeypatch.setattr(settings, "resend_api_key", SecretStr("re_test_key"))
-    monkeypatch.setattr(settings, "epub_from_address", "mcp@cdit-dev.de")
+    monkeypatch.setattr(settings, "epub_from_address", "mcp@example.com")
     yield
 
 
