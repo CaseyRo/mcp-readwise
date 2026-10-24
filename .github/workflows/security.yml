@@ -22,8 +22,9 @@ jobs:
 
       - uses: astral-sh/setup-uv@v5
 
-      - name: Install
-        run: uv sync
+      # Scoped audit of the LOCKED deps (bare `uvx pip-audit` audited its own venv).
+      - name: Export locked requirements
+        run: uv export --frozen --format requirements-txt --no-emit-project -o requirements-audit.txt
 
       - name: Security audit (pip-audit)
-        run: uvx pip-audit
+        run: uvx pip-audit==2.9.0 --no-deps --disable-pip -r requirements-audit.txt
