@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from mcp_readwise.models.source import Source
@@ -20,7 +18,7 @@ class HighlightInMaterial(BaseModel):
     tags: list[str] = Field(default_factory=list)
     highlighted_at: str = ""
     is_favorite: bool = False
-    book_id: Optional[int] = None
+    book_id: int | None = None
     book_title: str = ""
     book_author: str = ""
 

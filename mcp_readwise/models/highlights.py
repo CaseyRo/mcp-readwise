@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
@@ -40,7 +38,7 @@ class HighlightListResult(BaseModel):
 
     results: list[HighlightResult] = Field(default_factory=list)
     total: int = 0
-    next_page: Optional[int] = None
+    next_page: int | None = None
 
 
 class DeletionResult(BaseModel):
@@ -61,7 +59,7 @@ class ExportResult(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     results: list[dict] = Field(default_factory=list)
-    next_cursor: Optional[str] = None
+    next_cursor: str | None = None
 
     @field_validator("next_cursor", mode="before")
     @classmethod

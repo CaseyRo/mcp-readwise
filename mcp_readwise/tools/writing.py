@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Optional
+from typing import Annotated, Any
 
 from fastmcp.exceptions import ToolError
 from pydantic import Field
@@ -12,16 +12,15 @@ from mcp_readwise.engagement import get_index
 from mcp_readwise.models.source import Source
 from mcp_readwise.models.writing import HighlightInMaterial, WritingMaterial
 
-
 _SOURCE_FIRST_DEFAULT_LIMIT = 200
 _TOPIC_FIRST_DEFAULT_LIMIT = 30
 
 
 def _validate_args(
-    book_id: Optional[int],
-    document_id: Optional[str],
-    title_search: Optional[str],
-    topic: Optional[str],
+    book_id: int | None,
+    document_id: str | None,
+    title_search: str | None,
+    topic: str | None,
 ) -> str:
     """Ensure exactly one of the four args is set; return its name."""
     provided = [
@@ -72,9 +71,9 @@ def _resolve_title_search(
 
 def _resolve_source(
     *,
-    book_id: Optional[int],
-    document_id: Optional[str],
-    title_search: Optional[str],
+    book_id: int | None,
+    document_id: str | None,
+    title_search: str | None,
     sources: dict[str, Source],
 ) -> Source:
     """Look up a single Source from the engagement index by id or title."""
@@ -184,7 +183,7 @@ async def _source_first(
     )
 
 
-def _book_id_for_highlight(item: dict[str, Any]) -> Optional[int]:
+def _book_id_for_highlight(item: dict[str, Any]) -> int | None:
     """Extract book_id from a search-result attributes dict."""
     attrs = item.get("attributes", {}) or {}
     return attrs.get("book_id") or item.get("book_id")
@@ -278,12 +277,12 @@ async def _topic_first(
 
 
 async def writing_material(
-    book_id: Optional[int] = None,
-    document_id: Optional[str] = None,
-    title_search: Optional[str] = None,
-    topic: Optional[str] = None,
+    book_id: int | None = None,
+    document_id: str | None = None,
+    title_search: str | None = None,
+    topic: str | None = None,
     min_engagement: Annotated[float, Field(ge=0.0, le=5.0)] = 0.7,
-    limit: Optional[Annotated[int, Field(ge=1, le=200)]] = None,
+    limit: Annotated[int, Field(ge=1, le=200)] | None = None,
 ) -> WritingMaterial:
     """Bundle the inputs an LLM needs to draft from Readwise content.
 

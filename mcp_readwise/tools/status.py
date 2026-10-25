@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import Annotated, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Annotated
 
 from pydantic import Field
 
@@ -15,7 +15,6 @@ from mcp_readwise.models.status import (
     SignalDensity,
     ThisWindow,
 )
-
 
 _EVERGREEN_CAP = 10
 _CURRENT_CAP = 10
@@ -41,7 +40,7 @@ def _is_active_in_window(
     return False
 
 
-def _max_active_at(source: Source) -> Optional[datetime]:
+def _max_active_at(source: Source) -> datetime | None:
     """The most recent activity timestamp on this source, or None."""
     candidates = [
         source.last_highlighted_at,
@@ -74,10 +73,10 @@ def _bucket_for(source: Source) -> str:
     return "saved_only"
 
 
-def _highlight_timestamps_in_corpus(sources: list[Source]) -> tuple[Optional[datetime], Optional[datetime]]:
+def _highlight_timestamps_in_corpus(sources: list[Source]) -> tuple[datetime | None, datetime | None]:
     """Find the oldest and newest highlight timestamps across the corpus."""
-    oldest: Optional[datetime] = None
-    newest: Optional[datetime] = None
+    oldest: datetime | None = None
+    newest: datetime | None = None
     for s in sources:
         d = _parse_iso(s.last_highlighted_at) if s.last_highlighted_at else None
         if d is not None:
@@ -214,7 +213,7 @@ async def reading_status(
     """
     sources_dict = await get_index()
     sources = list(sources_dict.values())
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Window: end is `now` shifted back by week_offset weeks
     end = now + timedelta(days=window_days * week_offset)

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import BaseModel, ConfigDict
 
 from mcp_readwise.models.reader import ReaderDocument
@@ -56,5 +54,5 @@ class VerifyResult(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     found: bool = False
-    document: Optional[ReaderDocument] = None
+    document: ReaderDocument | None = None
     note: str = ""

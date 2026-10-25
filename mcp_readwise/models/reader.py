@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-
 
 ReadingStatus = Literal["finished", "in_progress", "saved_only"]
 
@@ -44,7 +43,7 @@ class ReaderDocument(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def derive_reading_status(self) -> "ReaderDocument":
+    def derive_reading_status(self) -> ReaderDocument:
         """Derive reading_status from location and reading_progress.
 
         Rules (in order):
@@ -69,7 +68,7 @@ class ReaderListResult(BaseModel):
 
     results: list[ReaderDocument] = Field(default_factory=list)
     total: int = 0
-    next_page: Optional[int] = None
+    next_page: int | None = None
 
 
 class ReaderListPage(BaseModel):
@@ -85,4 +84,4 @@ class ReaderListPage(BaseModel):
 
     results: list[ReaderDocument] = Field(default_factory=list)
     count: int = 0
-    next_cursor: Optional[str] = None
+    next_cursor: str | None = None

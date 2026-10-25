@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -10,8 +10,8 @@ import pytest
 from mcp_readwise import engagement
 from mcp_readwise.engagement import (
     _DEFAULT_TAG_DENYLIST,
-    _is_user_tag,
     _is_structural_note,
+    _is_user_tag,
     _parse_iso,
     compute_annotation,
     compute_base_layer,
@@ -22,7 +22,6 @@ from mcp_readwise.engagement import (
     extract_ulid,
 )
 from mcp_readwise.models.source import Source
-
 
 # ============= Helpers =============
 
@@ -217,30 +216,30 @@ class TestComputeDensity:
 
 class TestComputeRecency:
     def test_within_30d(self):
-        now = datetime(2026, 5, 9, tzinfo=timezone.utc)
+        now = datetime(2026, 5, 9, tzinfo=UTC)
         ts = (now - timedelta(days=10)).isoformat()
         assert compute_recency(ts, now) == 0.20
 
     def test_neutral_band(self):
-        now = datetime(2026, 5, 9, tzinfo=timezone.utc)
+        now = datetime(2026, 5, 9, tzinfo=UTC)
         ts = (now - timedelta(days=180)).isoformat()
         assert compute_recency(ts, now) == 0.0
 
     def test_older_than_5y(self):
-        now = datetime(2026, 5, 9, tzinfo=timezone.utc)
+        now = datetime(2026, 5, 9, tzinfo=UTC)
         ts = (now - timedelta(days=2000)).isoformat()
         assert compute_recency(ts, now) == -0.10
 
     def test_none_input(self):
-        now = datetime(2026, 5, 9, tzinfo=timezone.utc)
+        now = datetime(2026, 5, 9, tzinfo=UTC)
         assert compute_recency(None, now) == 0.0
 
     def test_empty_string(self):
-        now = datetime(2026, 5, 9, tzinfo=timezone.utc)
+        now = datetime(2026, 5, 9, tzinfo=UTC)
         assert compute_recency("", now) == 0.0
 
     def test_malformed(self):
-        now = datetime(2026, 5, 9, tzinfo=timezone.utc)
+        now = datetime(2026, 5, 9, tzinfo=UTC)
         assert compute_recency("not-a-date", now) == 0.0
 
 
@@ -269,34 +268,34 @@ class TestComputeAnnotation:
 
 class TestComputeReturnSignal:
     def test_no_signals(self):
-        now = datetime(2026, 5, 9, tzinfo=timezone.utc)
+        now = datetime(2026, 5, 9, tzinfo=UTC)
         score, flags = compute_return_signal([], None, None, now)
         assert score == 0.0
         assert flags == []
 
     def test_multi_era_cluster(self):
-        now = datetime(2026, 5, 9, tzinfo=timezone.utc)
+        now = datetime(2026, 5, 9, tzinfo=UTC)
         dates = [
-            datetime(2018, 1, 1, tzinfo=timezone.utc),
-            datetime(2018, 6, 1, tzinfo=timezone.utc),
-            datetime(2024, 11, 1, tzinfo=timezone.utc),
+            datetime(2018, 1, 1, tzinfo=UTC),
+            datetime(2018, 6, 1, tzinfo=UTC),
+            datetime(2024, 11, 1, tzinfo=UTC),
         ]
         score, flags = compute_return_signal(dates, None, None, now)
         assert score == 0.30
         assert "multi_era_return" in flags
 
     def test_single_era_no_signal(self):
-        now = datetime(2026, 5, 9, tzinfo=timezone.utc)
+        now = datetime(2026, 5, 9, tzinfo=UTC)
         dates = [
-            datetime(2024, 1, 1, tzinfo=timezone.utc),
-            datetime(2024, 6, 1, tzinfo=timezone.utc),
+            datetime(2024, 1, 1, tzinfo=UTC),
+            datetime(2024, 6, 1, tzinfo=UTC),
         ]
         score, flags = compute_return_signal(dates, None, None, now)
         assert score == 0.0
         assert flags == []
 
     def test_reader_reopen(self):
-        now = datetime(2026, 5, 9, tzinfo=timezone.utc)
+        now = datetime(2026, 5, 9, tzinfo=UTC)
         first = (now - timedelta(days=180)).isoformat()
         last = (now - timedelta(days=5)).isoformat()
         score, flags = compute_return_signal([], first, last, now)
@@ -304,10 +303,10 @@ class TestComputeReturnSignal:
         assert "reader_return" in flags
 
     def test_both_signals_stack(self):
-        now = datetime(2026, 5, 9, tzinfo=timezone.utc)
+        now = datetime(2026, 5, 9, tzinfo=UTC)
         dates = [
-            datetime(2018, 1, 1, tzinfo=timezone.utc),
-            datetime(2024, 11, 1, tzinfo=timezone.utc),
+            datetime(2018, 1, 1, tzinfo=UTC),
+            datetime(2024, 11, 1, tzinfo=UTC),
         ]
         first = (now - timedelta(days=200)).isoformat()
         last = (now - timedelta(days=2)).isoformat()
@@ -322,7 +321,7 @@ class TestComputeReturnSignal:
 
 class TestComputeEngagement:
     def _now(self):
-        return datetime(2026, 5, 9, tzinfo=timezone.utc)
+        return datetime(2026, 5, 9, tzinfo=UTC)
 
     def test_reader_article_recent_modest(self):
         """Reader article, 3 highlights, last hl within 30d, no annotation, no return.

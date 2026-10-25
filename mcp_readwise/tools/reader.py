@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Annotated, Literal, Optional
+from typing import Annotated, Literal
 
 from fastmcp import Context
 from pydantic import AnyHttpUrl, Field
@@ -68,16 +68,9 @@ def _item_to_document(item: dict) -> ReaderDocument:
 
 
 async def list_documents(
-    location: Optional[
-        Literal["new", "later", "shortlist", "archive", "feed"]
-    ] = None,
-    category: Optional[
-        Literal[
-            "article", "email", "rss", "highlight", "note",
-            "pdf", "epub", "tweet", "video",
-        ]
-    ] = None,
-    updated_after: Optional[str] = None,
+    location: Literal["new", "later", "shortlist", "archive", "feed"] | None = None,
+    category: Literal["article", "email", "rss", "highlight", "note", "pdf", "epub", "tweet", "video"] | None = None,
+    updated_after: str | None = None,
     page: int = 1,
     limit: Annotated[int, Field(ge=1, le=100)] = 50,
 ) -> ReaderListResult:
@@ -221,11 +214,9 @@ def _canonicalize_url(url: str) -> str:
 
 async def reader_get_by_url(
     url: AnyHttpUrl,
-    location: Optional[
-        Literal["new", "later", "shortlist", "archive", "feed"]
-    ] = None,
+    location: Literal["new", "later", "shortlist", "archive", "feed"] | None = None,
     ctx: Context | None = None,
-) -> Optional[ReaderDocument]:
+) -> ReaderDocument | None:
     """Find a single Reader document by its source URL.
 
     The v3 list endpoint has no `url` filter, so this paginates the library
@@ -242,7 +233,7 @@ async def reader_get_by_url(
     """
     target = _canonicalize_url(str(url))
 
-    cursor: Optional[str] = None
+    cursor: str | None = None
     for page_num in range(_GET_BY_URL_MAX_PAGES):
         params: dict = {"limit": _GET_BY_URL_PAGE_SIZE}
         if location:

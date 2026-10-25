@@ -10,8 +10,6 @@ Registered onto the server via `register_prompts(mcp)` from server.py.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from fastmcp import FastMCP
 
 
@@ -25,7 +23,7 @@ def register_prompts(mcp: FastMCP) -> None:
     )
     def publish_research_to_reader(
         title: str,
-        topic: Optional[str] = None,
+        topic: str | None = None,
     ) -> str:
         topic_line = (
             f"The document is about: {topic}.\n" if topic else ""

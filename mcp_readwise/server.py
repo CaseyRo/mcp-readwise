@@ -7,17 +7,18 @@ import logging
 import os
 import subprocess
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastmcp import FastMCP
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from mcp_readwise.usage import UsageMiddleware
 from mcp_readwise import __version__
 from mcp_readwise.auth import BearerTokenVerifier
 from mcp_readwise.config import settings
 from mcp_readwise.engagement import get_index, index_status
+from mcp_readwise.prompts import register_prompts
+from mcp_readwise.resources import register_resources
 from mcp_readwise.tools.epub_sender import save_markdown_as_epub
 from mcp_readwise.tools.epub_verifier import verify_epub_received
 from mcp_readwise.tools.markdown import save_markdown
@@ -32,8 +33,7 @@ from mcp_readwise.tools.tags import (
     list_tags,
 )
 from mcp_readwise.tools.writing import writing_material
-from mcp_readwise.prompts import register_prompts
-from mcp_readwise.resources import register_resources
+from mcp_readwise.usage import UsageMiddleware
 
 logging.basicConfig(
     level=settings.log_level,
@@ -41,7 +41,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-_start_time = datetime.now(timezone.utc)
+_start_time = datetime.now(UTC)
 
 
 def _resolve_git_commit() -> str:
@@ -236,7 +236,7 @@ async def health_check(request: Request) -> JSONResponse:
         "version": __version__,
         "build": _build,
         "git_commit": _git_commit,
-        "uptime_seconds": int((datetime.now(timezone.utc) - _start_time).total_seconds()),
+        "uptime_seconds": int((datetime.now(UTC) - _start_time).total_seconds()),
         "tools": 10,
         "engagement_index": index_status(),
         "epub_sender": {

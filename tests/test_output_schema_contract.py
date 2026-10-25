@@ -43,7 +43,6 @@ from mcp_readwise.models.status import (
 from mcp_readwise.models.tags import TagResult
 from mcp_readwise.models.writing import HighlightInMaterial, WritingMaterial
 
-
 # Every model used (directly or nested) in a tool's output_schema.
 ALL_OUTPUT_MODELS = [
     HighlightResult,

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 
@@ -111,7 +112,7 @@ class TestResolveCover:
         class FakeResp:
             status_code = 200
             content = b"\x89PNG\r\n\x1a\nfakebody"
-            headers = {"content-type": "image/png"}
+            headers: ClassVar[dict[str, str]] = {"content-type": "image/png"}
 
         class FakeClient:
             def __init__(self, *args, **kwargs):
@@ -139,7 +140,7 @@ class TestResolveCover:
         class FakeResp:
             status_code = 404
             content = b""
-            headers = {"content-type": "image/png"}
+            headers: ClassVar[dict[str, str]] = {"content-type": "image/png"}
 
         class FakeClient:
             def __init__(self, *args, **kwargs):
@@ -163,7 +164,7 @@ class TestResolveCover:
         class FakeResp:
             status_code = 200
             content = b"<html>"
-            headers = {"content-type": "text/html"}
+            headers: ClassVar[dict[str, str]] = {"content-type": "text/html"}
 
         class FakeClient:
             def __init__(self, *args, **kwargs):

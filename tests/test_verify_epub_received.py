@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -30,7 +30,7 @@ def _make_doc(title: str, doc_id: str = "doc-1") -> ReaderDocument:
 
 def _iso_ago(seconds: float) -> str:
     """ISO 8601 timestamp `seconds` ago."""
-    return (datetime.now(timezone.utc) - timedelta(seconds=seconds)).isoformat()
+    return (datetime.now(UTC) - timedelta(seconds=seconds)).isoformat()
 
 
 class TestFoundPath:

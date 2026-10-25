@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal
 
 from mcp_readwise.client import client
 from mcp_readwise.markdown_render import resolve_metadata, synthetic_url
@@ -17,15 +17,15 @@ ReaderLocation = Literal["new", "later", "shortlist", "archive"]
 
 async def save_markdown(
     markdown: str,
-    title: Optional[str] = None,
-    author: Optional[str] = None,
-    summary: Optional[str] = None,
-    tags: Optional[list[str]] = None,
+    title: str | None = None,
+    author: str | None = None,
+    summary: str | None = None,
+    tags: list[str] | None = None,
     location: ReaderLocation = "new",
     category: ReaderCategory = "epub",
-    published_date: Optional[str] = None,
-    image_url: Optional[str] = None,
-    note: Optional[str] = None,
+    published_date: str | None = None,
+    image_url: str | None = None,
+    note: str | None = None,
 ) -> ReaderDocument:
     """Save a markdown document to Readwise Reader as rendered HTML (sync).
 
