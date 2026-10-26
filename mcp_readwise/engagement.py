@@ -16,8 +16,8 @@ import logging
 import re
 import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from mcp_readwise.client import client
 from mcp_readwise.config import settings
@@ -76,7 +76,7 @@ def _is_structural_note(note: str) -> bool:
 _ULID_RE = re.compile(r"^private://read/([a-zA-Z0-9_-]+)/?$")
 
 
-def extract_ulid(source_url: Optional[str]) -> Optional[str]:
+def extract_ulid(source_url: str | None) -> str | None:
     """Extract a v3 document ULID from a `private://read/<ULID>` URL.
 
     Returns None for public URLs, empty inputs, or non-matching strings.
@@ -87,7 +87,7 @@ def extract_ulid(source_url: Optional[str]) -> Optional[str]:
     return m.group(1) if m else None
 
 
-def _parse_iso(timestamp: Optional[str]) -> Optional[datetime]:
+def _parse_iso(timestamp: str | None) -> datetime | None:
     """Parse an ISO 8601 timestamp; return None on empty or malformed input."""
     if not timestamp:
         return None
@@ -95,7 +95,7 @@ def _parse_iso(timestamp: Optional[str]) -> Optional[datetime]:
         s = timestamp.replace("Z", "+00:00")
         dt = datetime.fromisoformat(s)
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
+            dt = dt.replace(tzinfo=UTC)
         return dt
     except (ValueError, TypeError):
         return None
@@ -117,8 +117,8 @@ def compute_base_layer(
     *,
     has_highlights: bool,
     is_legacy: bool,
-    location: Optional[str],
-    reading_progress: Optional[float],
+    location: str | None,
+    reading_progress: float | None,
 ) -> str:
     """Determine `base_layer` per the priority rules in design D3.
 
@@ -165,7 +165,7 @@ def compute_density(num_highlights: int, base_layer: str) -> float:
     return 0.0
 
 
-def compute_recency(last_highlighted_at: Optional[str], now: datetime) -> float:
+def compute_recency(last_highlighted_at: str | None, now: datetime) -> float:
     """Recency tweak from max(highlighted_at)."""
     last = _parse_iso(last_highlighted_at)
     if last is None:
@@ -194,8 +194,8 @@ def compute_annotation(
 
 def compute_return_signal(
     highlight_dates: list[datetime],
-    first_opened_at: Optional[str],
-    last_opened_at: Optional[str],
+    first_opened_at: str | None,
+    last_opened_at: str | None,
     now: datetime,
 ) -> tuple[float, list[str]]:
     """Detect return signals; return (score, flags).
@@ -289,14 +289,14 @@ class _IndexCache:
     built_at: float
 
 
-_index_cache: Optional[_IndexCache] = None
+_index_cache: _IndexCache | None = None
 _index_lock = asyncio.Lock()
 
 
 async def _paginate_export() -> list[dict[str, Any]]:
     """Paginate `/api/v2/export/`, returning all books with highlights inline."""
     all_books: list[dict[str, Any]] = []
-    cursor: Optional[str] = None
+    cursor: str | None = None
     while True:
         params: dict[str, Any] = {}
         if cursor:
@@ -324,7 +324,7 @@ async def _paginate_v3_list() -> list[dict[str, Any]]:
     """Paginate `/api/v3/list/` per library location, skipping `feed`."""
     all_docs: list[dict[str, Any]] = []
     for location in _INDEX_LOCATIONS:
-        page_cursor: Optional[str] = None
+        page_cursor: str | None = None
         while True:
             params: dict[str, Any] = {"page_size": 100, "location": location}
             if page_cursor:
@@ -342,13 +342,13 @@ async def _paginate_v3_list() -> list[dict[str, Any]]:
 def _aggregate_highlights(
     highlights: list[dict[str, Any]],
     denylist: frozenset[str],
-) -> tuple[int, Optional[str], list[datetime], bool, bool, bool]:
+) -> tuple[int, str | None, list[datetime], bool, bool, bool]:
     """Walk highlights for one source; return aggregates.
 
     Returns: (num_non_discarded, last_highlighted_at, parsed_dates,
               has_user_note, has_user_tag, has_favorite)
     """
-    last_highlighted: Optional[str] = None
+    last_highlighted: str | None = None
     parsed_dates: list[datetime] = []
     has_user_note = False
     has_user_tag = False
@@ -403,7 +403,7 @@ def _join_v3(
     book: dict[str, Any],
     by_ulid: dict[str, dict[str, Any]],
     by_url: dict[str, dict[str, Any]],
-) -> Optional[dict[str, Any]]:
+) -> dict[str, Any] | None:
     """Find the v3 doc for a v2 book, or None."""
     if book.get("source") != "reader":
         return None
@@ -432,7 +432,7 @@ async def build_index() -> dict[str, Source]:
 
     by_ulid, by_url = _build_v3_indices(v3_docs)
     denylist = _resolve_tag_denylist()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     sources: dict[str, Source] = {}
     matched_v3_ids: set[str] = set()
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal, Optional
+from typing import Annotated, Literal
 
 from pydantic import Field
 
@@ -11,12 +11,11 @@ from mcp_readwise.models.books import BookListResult, BookResult
 
 
 async def list_books(
-    category: Optional[
-        Literal["books", "articles", "tweets", "podcasts", "supplementals"]
-    ] = None,
-    source: Optional[str] = None,
-    num_highlights_gte: Optional[int] = None,
-    updated_after: Optional[str] = None,
+    category: Literal["books", "articles", "tweets", "podcasts", "supplementals"]
+    | None = None,
+    source: str | None = None,
+    num_highlights_gte: int | None = None,
+    updated_after: str | None = None,
     page: int = 1,
     limit: Annotated[int, Field(ge=1, le=100)] = 50,
 ) -> BookListResult:

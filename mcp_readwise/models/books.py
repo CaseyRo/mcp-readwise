@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
@@ -35,4 +33,4 @@ class BookListResult(BaseModel):
 
     results: list[BookResult] = Field(default_factory=list)
     total: int = 0
-    next_page: Optional[int] = None
+    next_page: int | None = None

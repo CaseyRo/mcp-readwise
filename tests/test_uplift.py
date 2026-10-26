@@ -14,7 +14,6 @@ import pytest
 
 from mcp_readwise.models.highlights import DeletionResult
 
-
 # --- Typed deletion model -------------------------------------------------
 
 

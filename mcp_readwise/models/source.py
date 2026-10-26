@@ -6,10 +6,9 @@ A `Source` unifies a Readwise v2 book with its corresponding Reader v3 document
 
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-
 
 BaseLayer = Literal[
     "saved_cold",
@@ -59,8 +58,8 @@ class Source(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     # Identifiers — at least one populated
-    book_id: Optional[int] = None
-    document_id: Optional[str] = None
+    book_id: int | None = None
+    document_id: str | None = None
 
     # Display metadata
     title: str = ""
@@ -73,15 +72,15 @@ class Source(BaseModel):
     source_field: str = ""  # "reader" | "kindle" | "ibooks" | ...
 
     # v3 signals (None when no v3 join)
-    location: Optional[str] = None
-    reading_progress: Optional[float] = None
-    saved_at: Optional[str] = None
-    first_opened_at: Optional[str] = None
-    last_opened_at: Optional[str] = None
-    last_moved_at: Optional[str] = None
+    location: str | None = None
+    reading_progress: float | None = None
+    saved_at: str | None = None
+    first_opened_at: str | None = None
+    last_opened_at: str | None = None
+    last_moved_at: str | None = None
 
     # Highlight aggregates (populated by the engagement module)
-    last_highlighted_at: Optional[str] = None
+    last_highlighted_at: str | None = None
     has_user_note: bool = False
     has_user_tag: bool = False
     has_favorite: bool = False
@@ -89,7 +88,7 @@ class Source(BaseModel):
     # Engagement
     engagement: EngagementScore = Field(default_factory=EngagementScore)
     is_legacy: bool = False
-    legacy_recency: Optional[Literal["cold", "warm"]] = None
+    legacy_recency: Literal["cold", "warm"] | None = None
 
     @field_validator("*", mode="before")
     @classmethod

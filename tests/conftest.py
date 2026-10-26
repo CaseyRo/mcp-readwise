@@ -8,7 +8,6 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-
 # Set test env vars before any imports touch Settings
 os.environ.setdefault("READWISE_TOKEN", "test-token-12345")
 os.environ.setdefault("READWISE_BASE_URL", "https://readwise.io")

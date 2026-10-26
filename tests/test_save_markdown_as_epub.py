@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 import pytest
 
 # Configure env before any settings import — but config is loaded at module

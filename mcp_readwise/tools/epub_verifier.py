@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastmcp.exceptions import ToolError
 
@@ -87,8 +87,8 @@ async def verify_epub_received(
     try:
         since_dt = datetime.fromisoformat(since.replace("Z", "+00:00"))
         if since_dt.tzinfo is None:
-            since_dt = since_dt.replace(tzinfo=timezone.utc)
-        elapsed = (datetime.now(timezone.utc) - since_dt).total_seconds()
+            since_dt = since_dt.replace(tzinfo=UTC)
+        elapsed = (datetime.now(UTC) - since_dt).total_seconds()
     except (ValueError, TypeError):
         elapsed = 0.0
 

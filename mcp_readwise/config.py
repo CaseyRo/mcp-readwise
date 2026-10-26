@@ -70,7 +70,7 @@ class Settings(BaseSettings):
         return v.rstrip("/")
 
     @model_validator(mode="after")
-    def require_api_key_for_http(self) -> "Settings":
+    def require_api_key_for_http(self) -> Settings:
         if self.transport == "http" and not self.mcp_api_key.get_secret_value():
             raise ValueError(
                 "MCP_API_KEY is required when TRANSPORT=http. "

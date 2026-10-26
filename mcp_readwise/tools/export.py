@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from mcp_readwise.client import client
 from mcp_readwise.models.highlights import ExportResult
 
 
 async def export_highlights(
-    updated_after: Optional[str] = None,
-    book_ids: Optional[list[int]] = None,
-    cursor: Optional[str] = None,
+    updated_after: str | None = None,
+    book_ids: list[int] | None = None,
+    cursor: str | None = None,
 ) -> ExportResult:
     """Bulk export highlights, optionally filtered by date or specific books.
 

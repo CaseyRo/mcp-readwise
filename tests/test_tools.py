@@ -12,7 +12,6 @@ from tests.conftest import (
     SAMPLE_TAG,
 )
 
-
 # --- Book tools ---
 
 

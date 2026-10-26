@@ -12,7 +12,7 @@ import asyncio
 import logging
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.message import EmailMessage
 from email.utils import make_msgid
 
@@ -116,7 +116,7 @@ async def send_epub(
             message_id = msg.get("Message-ID", "") or str(uuid.uuid4())
             return SendResult(
                 message_id=message_id.strip("<>"),
-                accepted_at=datetime.now(timezone.utc).isoformat(),
+                accepted_at=datetime.now(UTC).isoformat(),
                 server_response=str(response or "accepted"),
             )
         except aiosmtplib.SMTPResponseException as exc:

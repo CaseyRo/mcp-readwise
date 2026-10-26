@@ -44,3 +44,26 @@ dev = [
     "pytest-httpx>=0.36",
     "ruff>=0.15",
 ]
+
+[tool.ruff.lint]
+# Pinned rather than inherited: ruff's default rule set widens between releases,
+# so a dev-tools bump could turn a clean tree red (CDI-1783). Same set fleet-wide.
+select = ["E4", "E7", "E9", "F", "I", "UP", "B", "RUF"]
+# UP042 (str+Enum -> StrEnum) changes str() of enum values, which can be persisted or on the wire: fleet decision is no.
+ignore = [
+    "UP042",
+    # RUF001/2/3 flag "ambiguous" unicode: en dashes and the x sign in prose and
+    # tool text. The rule targets homoglyphs in identifiers; here it would only
+    # object to correct typography (same call as mcp-stolperfalle).
+    "RUF001",
+    "RUF002",
+    "RUF003",
+]
+# The `noqa: BLE001` on deliberate defensive catches documents intent for a rule
+# this set leaves off (fleet position); external keeps RUF100 from deleting it.
+external = ["BLE001"]
+
+[tool.ruff.lint.per-file-ignores]
+# Vendored verbatim from CDiT-infrastructure/scripts/mcp_usage_middleware.py; re-copy, never edit here.
+# Its noqa directives (UP017, BLE001, S110) serve repos with other rule sets.
+"mcp_readwise/usage.py" = ["RUF100", "UP017"]
